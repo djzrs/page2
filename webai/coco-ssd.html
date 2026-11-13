@@ -184,6 +184,42 @@ button:disabled {
   padding: 15px 0;
 }
 
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.preset-item {
+  cursor: pointer;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  transition: .2s;
+  text-align: center;
+  background: #fff;
+}
+
+.preset-item:hover {
+  border-color: #3182ce;
+  transform: translateY(-2px);
+}
+
+.preset-item img {
+  width: 100%;
+  height: 90px;
+  object-fit: cover;
+  display: block;
+}
+
+.preset-label {
+  font-size: 13px;
+  padding: 6px 0;
+  color: #4a5568;
+  background: #f7fafc;
+}
+
 .debug {
   margin-top: 28px;
   padding: 15px;
@@ -248,6 +284,21 @@ button:disabled {
       支持 JPG、PNG、WebP 等常见图片格式
     </div>
   </label>
+
+  <div class="preset-grid" id="presetGrid">
+    <div class="preset-item" data-src="img/cat.jpg">
+      <img src="img/cat.jpg" alt="猫">
+      <div class="preset-label">🐱 猫</div>
+    </div>
+    <div class="preset-item" data-src="img/food.jpg">
+      <img src="img/food.jpg" alt="食物">
+      <div class="preset-label">🍔 食物</div>
+    </div>
+    <div class="preset-item" data-src="img/people.jpg">
+      <img src="img/people.jpg" alt="人物">
+      <div class="preset-label">👥 人物</div>
+    </div>
+  </div>
 
   <div class="buttons">
     <button id="loadButton">加载 AI 模型</button>
@@ -454,6 +505,50 @@ async function loadModel() {
 // 5. 选择图片
 // ======================================
 
+// 统一的图片加载逻辑（file input 和 预设图片 共用）
+function applyImage(img, sourceLabel) {
+
+  selectedImage = img;
+
+  // 设置 Canvas 原始尺寸
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+
+  // 显示原图
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  ctx.drawImage(
+    img,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+  imageArea.style.display = "block";
+
+  imageInfo.textContent =
+    (sourceLabel ? sourceLabel + " · " : "") +
+    "图片尺寸：" +
+    img.naturalWidth +
+    " × " +
+    img.naturalHeight;
+
+  resultList.innerHTML =
+    '<div class="empty">点击开始识别</div>';
+
+  objectCount.textContent = "0 个物体";
+
+  detectButton.disabled = !model;
+
+  setStatus(
+    model
+      ? "图片已加载，可以开始识别"
+      : "图片已加载，请先加载模型"
+  );
+
+}
+
 fileInput.addEventListener("change", event => {
 
   const file = event.target.files[0];
@@ -473,57 +568,39 @@ fileInput.addEventListener("change", event => {
 
   const img = new Image();
 
-  img.onload = () => {
-
-    selectedImage = img;
-
-    // 设置 Canvas 原始尺寸
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
-
-    // 显示原图
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    ctx.drawImage(
-      img,
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
-
-    imageArea.style.display = "block";
-
-    imageInfo.textContent =
-      "图片尺寸：" +
-      img.naturalWidth +
-      " × " +
-      img.naturalHeight;
-
-    resultList.innerHTML =
-      '<div class="empty">点击开始识别</div>';
-
-    objectCount.textContent = "0 个物体";
-
-    detectButton.disabled = !model;
-
-    setStatus(
-      model
-        ? "图片已加载，可以开始识别"
-        : "图片已加载，请先加载模型"
-    );
-
-  };
+  img.onload = () => applyImage(img, file.name);
 
   img.onerror = () => {
-
     setStatus("图片读取失败", "error");
-
   };
 
   img.src = imageURL;
 
 });
+
+// 预设测试图片点击
+document
+  .getElementById("presetGrid")
+  .addEventListener("click", event => {
+
+    const item = event.target.closest(".preset-item");
+
+    if (!item) return;
+
+    const src = item.dataset.src;
+    const label = item.querySelector(".preset-label")?.textContent ?? "预设图片";
+
+    const img = new Image();
+
+    img.onload = () => applyImage(img, label);
+
+    img.onerror = () => {
+      setStatus("预设图片加载失败：" + src, "error");
+    };
+
+    img.src = src;
+
+  });
 
 // ======================================
 // 6. 绘制检测框
