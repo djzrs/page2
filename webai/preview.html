@@ -306,21 +306,16 @@
     // =====================================
 
     const MODEL_ID =
-      "onnx-community/mobilenetv4_conv_small.e2400_r224_in1k";
+  "onnx-community/mobilenetv4_conv_small.e2400_r224_in1k";
 
-    // 自定义模型服务器
-    env.remoteHost =
-      "https://pages.maikemaker.eu.org/page2/webai/models/";
+env.remoteHost =
+  "https://pages.maikemaker.eu.org/page2/webai/models/";
 
-    // 自定义模型文件路径
-    env.remotePathTemplate = "{model}/{file}";
+env.remotePathTemplate = "{model}";
 
-    // 浏览器缓存
-    env.useBrowserCache = true;
-
-    // 只从远程模型服务器加载
-    env.allowRemoteModels = true;
-    env.allowLocalModels = false;
+env.allowRemoteModels = true;
+env.allowLocalModels = false;
+env.useBrowserCache = true;
 
     // =====================================
     // 2. 页面元素
