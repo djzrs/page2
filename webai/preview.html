@@ -354,6 +354,27 @@ async function loadModel() {
 
     console.log("模型文件大小：", modelBuffer.byteLength);
 
+    // 验证模型文件 SHA-256
+    const hashBuffer = await crypto.subtle.digest(
+      "SHA-256",
+      modelBuffer
+    );
+
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+
+    const actualHash = hashArray
+      .map(b => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    console.log("模型 SHA-256：", actualHash);
+
+    console.log(
+      "模型文件完整性：",
+      actualHash === "270717121efb0960d60feb712574d55fa27b585f3c4afc14741d81ea980bcd9a"
+        ? "通过"
+        : "不匹配"
+    );
+
     session = await ort.InferenceSession.create(
       modelBuffer,
       {
@@ -365,6 +386,18 @@ async function loadModel() {
     console.log("模型输入信息：", session.inputMetadata);
     console.log("模型输入名称：", session.inputNames);
     console.log("模型输出名称：", session.outputNames);
+
+    // 验证类别标签
+    console.log(
+      "猫咪相关类别：",
+      [281, 282, 283, 284, 285].map(i => ({
+        index: i,
+        label:
+          config.id2label?.[i] ??
+          config.id2label?.[String(i)] ??
+          "（未找到标签）"
+      }))
+    );
 
     setDebug(
       "模型加载成功\n\n" +

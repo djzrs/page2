@@ -1,0 +1,784 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 图像目标检测 - COCO-SSD</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 30px 16px;
+  font-family: Arial, "Microsoft YaHei", sans-serif;
+  background: #f3f5f8;
+  color: #263238;
+}
+
+.container {
+  max-width: 850px;
+  margin: auto;
+  padding: 28px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0,0,0,.06);
+}
+
+h1 {
+  margin: 0 0 10px;
+  font-size: 26px;
+}
+
+.description {
+  color: #718096;
+  font-size: 14px;
+  line-height: 1.7;
+  margin-bottom: 24px;
+}
+
+.status {
+  padding: 13px 15px;
+  border-radius: 9px;
+  background: #edf2f7;
+  color: #4a5568;
+  font-size: 14px;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.status.success {
+  background: #e6fffa;
+  color: #087f68;
+}
+
+.status.error {
+  background: #fff0f0;
+  color: #c53030;
+}
+
+.upload {
+  display: block;
+  padding: 30px;
+  border: 2px dashed #cbd5e0;
+  border-radius: 12px;
+  text-align: center;
+  color: #64748b;
+  cursor: pointer;
+  transition: .2s;
+}
+
+.upload:hover {
+  border-color: #3182ce;
+  background: #f7fbff;
+}
+
+.upload input {
+  display: none;
+}
+
+.upload-icon {
+  font-size: 36px;
+  margin-bottom: 10px;
+}
+
+.buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+button {
+  flex: 1;
+  padding: 13px 16px;
+  border: none;
+  border-radius: 9px;
+  background: #3182ce;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.image-area {
+  display: none;
+  margin-top: 22px;
+}
+
+.image-area canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: auto;
+  border-radius: 10px;
+  background: #f7fafc;
+}
+
+.image-info {
+  text-align: center;
+  color: #718096;
+  font-size: 13px;
+  margin-top: 10px;
+}
+
+.result-section {
+  margin-top: 28px;
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.result-header h3 {
+  margin: 0;
+}
+
+.count {
+  color: #3182ce;
+  font-size: 14px;
+}
+
+.result-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.result-item {
+  padding: 13px;
+  background: #f7fafc;
+  border-radius: 9px;
+  border-left: 4px solid #3182ce;
+}
+
+.result-name {
+  font-weight: bold;
+  font-size: 15px;
+}
+
+.result-score {
+  color: #718096;
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+.empty {
+  color: #94a3b8;
+  font-size: 14px;
+  padding: 15px 0;
+}
+
+.debug {
+  margin-top: 28px;
+  padding: 15px;
+  background: #f7fafc;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.debug h3 {
+  margin: 0 0 8px;
+}
+
+.debug pre {
+  margin: 0;
+  white-space: pre-wrap;
+  color: #64748b;
+}
+
+.footer {
+  margin-top: 25px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+@media(max-width: 520px) {
+  .container {
+    padding: 20px;
+  }
+
+  .buttons {
+    flex-direction: column;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>AI 图像目标检测</h1>
+
+  <div class="description">
+    基于 TensorFlow.js 和 COCO-SSD 模型。
+    在浏览器中识别图片里的物体，并自动绘制检测框。
+  </div>
+
+  <div id="status" class="status">
+    正在初始化……
+  </div>
+
+  <label class="upload">
+    <input type="file" id="fileInput" accept="image/*">
+
+    <div class="upload-icon">📷</div>
+    <strong>点击选择图片</strong>
+
+    <div style="font-size:13px;margin-top:8px">
+      支持 JPG、PNG、WebP 等常见图片格式
+    </div>
+  </label>
+
+  <div class="buttons">
+    <button id="loadButton">加载 AI 模型</button>
+    <button id="detectButton" disabled>开始识别</button>
+  </div>
+
+  <div class="image-area" id="imageArea">
+
+    <canvas id="canvas"></canvas>
+
+    <div class="image-info" id="imageInfo"></div>
+
+  </div>
+
+  <div class="result-section">
+
+    <div class="result-header">
+      <h3>检测结果</h3>
+      <span class="count" id="objectCount">0 个物体</span>
+    </div>
+
+    <div class="result-list" id="resultList">
+      <div class="empty">等待识别图片……</div>
+    </div>
+
+  </div>
+
+  <div class="debug">
+    <h3>运行信息</h3>
+    <pre id="debugInfo">等待模型加载……</pre>
+  </div>
+
+  <div class="footer">
+    TensorFlow.js · COCO-SSD · Browser AI
+  </div>
+
+</div>
+
+<!-- TensorFlow.js -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+
+<!-- COCO-SSD -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+
+<script>
+
+// ======================================
+// 1. 全局变量
+// ======================================
+
+let model = null;
+let selectedImage = null;
+let imageURL = null;
+
+const statusEl = document.getElementById("status");
+const debugEl = document.getElementById("debugInfo");
+
+const fileInput = document.getElementById("fileInput");
+const loadButton = document.getElementById("loadButton");
+const detectButton = document.getElementById("detectButton");
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const imageArea = document.getElementById("imageArea");
+const imageInfo = document.getElementById("imageInfo");
+
+const resultList = document.getElementById("resultList");
+const objectCount = document.getElementById("objectCount");
+
+// 检测置信度阈值
+const MIN_SCORE = 0.35;
+
+// ======================================
+// 2. 状态显示
+// ======================================
+
+function setStatus(message, type = "") {
+
+  statusEl.textContent = message;
+  statusEl.className = "status " + type;
+
+}
+
+function setDebug(message) {
+
+  debugEl.textContent = message;
+
+}
+
+// ======================================
+// 3. 检查依赖
+// ======================================
+
+function checkLibraries() {
+
+  if (typeof tf === "undefined") {
+    throw new Error("TensorFlow.js 加载失败，请检查 CDN 网络");
+  }
+
+  if (typeof cocoSsd === "undefined") {
+    throw new Error("COCO-SSD 加载失败，请检查 CDN 网络");
+  }
+
+}
+
+// ======================================
+// 4. 加载模型
+// ======================================
+
+async function loadModel() {
+
+  if (model) {
+    setStatus("模型已经加载完成", "success");
+    return;
+  }
+
+  loadButton.disabled = true;
+
+  setStatus("正在初始化 TensorFlow.js……");
+
+  try {
+
+    checkLibraries();
+
+    // 优先使用 WebGL
+    let backend = "webgl";
+
+    try {
+
+      const success = await tf.setBackend("webgl");
+
+      if (!success) {
+        throw new Error("WebGL 后端不可用");
+      }
+
+    } catch (error) {
+
+      console.warn("WebGL 初始化失败，尝试 CPU：", error);
+
+      backend = "cpu";
+
+      await tf.setBackend("cpu");
+
+    }
+
+    await tf.ready();
+
+    console.log("TensorFlow.js 版本：", tf.version.tfjs);
+    console.log("当前运行后端：", tf.getBackend());
+
+    setStatus("正在下载 COCO-SSD 模型，请稍候……");
+
+    // 使用轻量级 MobileNetV2 模型
+    model = await cocoSsd.load({
+      base: "lite_mobilenet_v2"
+    });
+
+    console.log("COCO-SSD 模型加载成功");
+
+    setDebug(
+      "模型加载成功\n\n" +
+      "TensorFlow.js 版本：" + tf.version.tfjs + "\n" +
+      "COCO-SSD 版本：2.2.3\n" +
+      "模型结构：lite_mobilenet_v2\n" +
+      "运行后端：" + tf.getBackend() + "\n" +
+      "检测类别：COCO 常见物体类别\n" +
+      "置信度阈值：" + MIN_SCORE
+    );
+
+    setStatus(
+      "AI 模型加载成功，可以开始识别",
+      "success"
+    );
+
+    if (selectedImage) {
+      detectButton.disabled = false;
+    }
+
+  } catch (error) {
+
+    console.error("模型加载失败：", error);
+
+    model = null;
+
+    setStatus(
+      "模型加载失败：" + error.message,
+      "error"
+    );
+
+    setDebug(
+      error.stack || error.message
+    );
+
+  } finally {
+
+    loadButton.disabled = false;
+
+  }
+
+}
+
+// ======================================
+// 5. 选择图片
+// ======================================
+
+fileInput.addEventListener("change", event => {
+
+  const file = event.target.files[0];
+
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    setStatus("请选择有效的图片文件", "error");
+    return;
+  }
+
+  if (imageURL) {
+    URL.revokeObjectURL(imageURL);
+  }
+
+  imageURL = URL.createObjectURL(file);
+
+  const img = new Image();
+
+  img.onload = () => {
+
+    selectedImage = img;
+
+    // 设置 Canvas 原始尺寸
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+
+    // 显示原图
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.drawImage(
+      img,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+    imageArea.style.display = "block";
+
+    imageInfo.textContent =
+      "图片尺寸：" +
+      img.naturalWidth +
+      " × " +
+      img.naturalHeight;
+
+    resultList.innerHTML =
+      '<div class="empty">点击开始识别</div>';
+
+    objectCount.textContent = "0 个物体";
+
+    detectButton.disabled = !model;
+
+    setStatus(
+      model
+        ? "图片已加载，可以开始识别"
+        : "图片已加载，请先加载模型"
+    );
+
+  };
+
+  img.onerror = () => {
+
+    setStatus("图片读取失败", "error");
+
+  };
+
+  img.src = imageURL;
+
+});
+
+// ======================================
+// 6. 绘制检测框
+// ======================================
+
+function drawDetection(predictions) {
+
+  const img = selectedImage;
+
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+
+  // 绘制原始图片
+  ctx.drawImage(
+    img,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+  predictions.forEach((item, index) => {
+
+    const [x, y, width, height] = item.bbox;
+
+    const color = [
+      "#00d084",
+      "#ff9800",
+      "#2196f3",
+      "#e91e63",
+      "#9c27b0",
+      "#ff5722"
+    ][index % 6];
+
+    // 绘制边界框
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(
+      2,
+      canvas.width / 300
+    );
+
+    ctx.strokeRect(
+      x,
+      y,
+      width,
+      height
+    );
+
+    // 标签文字
+    const text =
+      item.class +
+      " " +
+      (item.score * 100).toFixed(1) +
+      "%";
+
+    const fontSize = Math.max(
+      14,
+      canvas.width / 45
+    );
+
+    ctx.font = "bold " + fontSize + "px Arial";
+
+    const textWidth = ctx.measureText(text).width;
+
+    const labelHeight = fontSize + 10;
+
+    const labelY = Math.max(
+      0,
+      y - labelHeight
+    );
+
+    // 标签背景
+    ctx.fillStyle = color;
+
+    ctx.fillRect(
+      x,
+      labelY,
+      textWidth + 12,
+      labelHeight
+    );
+
+    // 标签文字
+    ctx.fillStyle = "#ffffff";
+
+    ctx.fillText(
+      text,
+      x + 6,
+      labelY + fontSize
+    );
+
+  });
+
+}
+
+// ======================================
+// 7. 显示检测结果
+// ======================================
+
+function showResults(predictions) {
+
+  resultList.innerHTML = "";
+
+  objectCount.textContent =
+    predictions.length + " 个物体";
+
+  if (predictions.length === 0) {
+
+    resultList.innerHTML =
+      '<div class="empty">没有检测到符合置信度要求的物体</div>';
+
+    return;
+
+  }
+
+  predictions.forEach((item, index) => {
+
+    const card = document.createElement("div");
+
+    card.className = "result-item";
+
+    const name = document.createElement("div");
+
+    name.className = "result-name";
+
+    name.textContent =
+      (index + 1) + ". " + item.class;
+
+    const score = document.createElement("div");
+
+    score.className = "result-score";
+
+    score.textContent =
+      "置信度：" +
+      (item.score * 100).toFixed(2) +
+      "%";
+
+    card.append(name, score);
+
+    resultList.appendChild(card);
+
+  });
+
+}
+
+// ======================================
+// 8. 开始目标检测
+// ======================================
+
+async function detectObjects() {
+
+  if (!model) {
+    setStatus("请先加载模型", "error");
+    return;
+  }
+
+  if (!selectedImage) {
+    setStatus("请先选择图片", "error");
+    return;
+  }
+
+  detectButton.disabled = true;
+
+  setStatus("AI 正在分析图片……");
+
+  const startTime = performance.now();
+
+  try {
+
+    // 直接将图片交给模型
+    const predictions = await model.detect(
+      selectedImage,
+      20,
+      MIN_SCORE
+    );
+
+    const elapsed =
+      (performance.now() - startTime).toFixed(0);
+
+    console.log("检测结果：", predictions);
+
+    console.log("检测耗时：", elapsed + " ms");
+
+    // 绘制检测框
+    drawDetection(predictions);
+
+    // 显示结果
+    showResults(predictions);
+
+    // 更新运行信息
+    setDebug(
+      "目标检测完成\n\n" +
+      "模型：COCO-SSD\n" +
+      "运行后端：" + tf.getBackend() + "\n" +
+      "输入图片：" +
+      selectedImage.naturalWidth +
+      " × " +
+      selectedImage.naturalHeight +
+      "\n" +
+      "检测数量：" + predictions.length + "\n" +
+      "置信度阈值：" + MIN_SCORE + "\n" +
+      "最大检测数量：20\n" +
+      "推理耗时：" + elapsed + " ms\n\n" +
+      "详细检测结果：\n" +
+      JSON.stringify(predictions, null, 2)
+    );
+
+    setStatus(
+      "识别完成，共检测到 " +
+      predictions.length +
+      " 个物体",
+      "success"
+    );
+
+  } catch (error) {
+
+    console.error("目标检测失败：", error);
+
+    setStatus(
+      "识别失败：" + error.message,
+      "error"
+    );
+
+    setDebug(
+      error.stack || error.message
+    );
+
+  } finally {
+
+    detectButton.disabled = false;
+
+  }
+
+}
+
+// ======================================
+// 9. 事件绑定
+// ======================================
+
+loadButton.addEventListener(
+  "click",
+  loadModel
+);
+
+detectButton.addEventListener(
+  "click",
+  detectObjects
+);
+
+// ======================================
+// 10. 页面初始化
+// ======================================
+
+setStatus("请选择图片，然后加载 AI 模型");
+
+</script>
+
+</body>
+</html>
