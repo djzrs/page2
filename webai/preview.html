@@ -508,7 +508,28 @@ function preprocessImage(img) {
     SIZE,
     SIZE
   );
+// 显示模型实际收到的 224×224 图片
+let cropDebug = document.getElementById("cropDebug");
 
+if (!cropDebug) {
+  cropDebug = document.createElement("div");
+  cropDebug.id = "cropDebug";
+  cropDebug.style.marginTop = "20px";
+  cropDebug.style.textAlign = "center";
+
+  document.querySelector(".preview").appendChild(cropDebug);
+}
+
+cropDebug.innerHTML = "<p>模型实际输入图片（224×224）：</p>";
+
+const cropPreview = document.createElement("img");
+cropPreview.src = cropCanvas.toDataURL("image/png");
+cropPreview.style.width = "224px";
+cropPreview.style.height = "224px";
+cropPreview.style.objectFit = "contain";
+cropPreview.style.border = "2px solid #3182ce";
+
+cropDebug.appendChild(cropPreview);
   const imageData = cropCtx.getImageData(
     0,
     0,
@@ -587,6 +608,23 @@ function preprocessImage(img) {
   console.log("输入数据范围：", { min, max });
   console.log("输入数据长度：", tensorData.length);
   console.log("输入数据平均值：", sum / tensorData.length);
+  const channelSize = SIZE * SIZE;
+
+function channelStats(start) {
+  let total = 0;
+
+  for (let i = start; i < start + channelSize; i++) {
+    total += tensorData[i];
+  }
+
+  return (total / channelSize).toFixed(4);
+}
+
+console.log("RGB 通道平均值：", {
+  R: channelStats(0),
+  G: channelStats(channelSize),
+  B: channelStats(channelSize * 2)
+});
 
   console.log("缩放后尺寸：", resizedWidth, resizedHeight);
   console.log("中心裁剪位置：", cropX, cropY);
