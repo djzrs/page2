@@ -1,0 +1,611 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>浏览器端 AI 图像分类</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 32px 16px;
+      min-height: 100vh;
+      background: #f4f6f9;
+      color: #202938;
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      text-align: center;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      margin-bottom: 28px;
+      color: #718096;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .panel {
+      margin-bottom: 18px;
+      padding: 22px;
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 4px 18px rgba(0,0,0,.05);
+    }
+
+    .section-title {
+      margin: 0 0 16px;
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    .status {
+      padding: 12px 14px;
+      background: #f1f5f9;
+      border-radius: 8px;
+      color: #475569;
+      font-size: 14px;
+      line-height: 1.6;
+      overflow-wrap: anywhere;
+    }
+
+    .status.success {
+      background: #ecfdf5;
+      color: #047857;
+    }
+
+    .status.error {
+      background: #fef2f2;
+      color: #b91c1c;
+    }
+
+    .progress {
+      width: 100%;
+      height: 8px;
+      margin-top: 12px;
+      overflow: hidden;
+      background: #e5e7eb;
+      border-radius: 20px;
+    }
+
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background: #2563eb;
+      transition: width .2s;
+    }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    button, .upload-label {
+      padding: 11px 20px;
+      border: 0;
+      border-radius: 8px;
+      background: #2563eb;
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+      transition: .2s;
+    }
+
+    button:hover, .upload-label:hover {
+      background: #1d4ed8;
+    }
+
+    button:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    .secondary {
+      background: #475569;
+    }
+
+    .secondary:hover {
+      background: #334155;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .image-area {
+      min-height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: #f8fafc;
+      border: 2px dashed #cbd5e1;
+      border-radius: 10px;
+    }
+
+    .image-area img {
+      display: none;
+      max-width: 100%;
+      max-height: 420px;
+      object-fit: contain;
+    }
+
+    .placeholder {
+      padding: 30px;
+      color: #94a3b8;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .result-item {
+      margin-top: 16px;
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 7px;
+      font-size: 14px;
+    }
+
+    .result-label {
+      font-weight: 600;
+      overflow-wrap: anywhere;
+    }
+
+    .result-score {
+      color: #64748b;
+      white-space: nowrap;
+    }
+
+    .result-track {
+      height: 9px;
+      overflow: hidden;
+      background: #e2e8f0;
+      border-radius: 10px;
+    }
+
+    .result-fill {
+      height: 100%;
+      background: #2563eb;
+      border-radius: 10px;
+    }
+
+    .empty-result {
+      padding: 20px 0;
+      color: #94a3b8;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .footer {
+      margin-top: 24px;
+      color: #94a3b8;
+      text-align: center;
+      font-size: 12px;
+      line-height: 1.8;
+    }
+
+    @media (max-width: 500px) {
+      body {
+        padding: 22px 12px;
+      }
+
+      .panel {
+        padding: 17px;
+      }
+
+      h1 {
+        font-size: 23px;
+      }
+
+      button, .upload-label {
+        flex: 1;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+
+    <h1>浏览器 AI 图像分类</h1>
+    <div class="subtitle">
+      使用 Transformers.js + MobileNetV4，在浏览器本地运行 AI 模型
+    </div>
+
+    <!-- 模型状态 -->
+    <section class="panel">
+      <h2 class="section-title">一、模型加载</h2>
+
+      <div id="modelStatus" class="status">
+        模型尚未加载，请点击下方按钮。
+      </div>
+
+      <div class="progress">
+        <div id="progressBar" class="progress-bar"></div>
+      </div>
+
+      <div class="buttons">
+        <button id="loadButton">加载 AI 模型</button>
+      </div>
+    </section>
+
+    <!-- 图片上传 -->
+    <section class="panel">
+      <h2 class="section-title">二、选择图片</h2>
+
+      <div class="image-area">
+        <div id="placeholder" class="placeholder">
+          请上传一张图片<br>
+          支持 JPG、PNG、WEBP 等常见格式
+        </div>
+        <img id="preview" alt="图片预览">
+      </div>
+
+      <div class="buttons">
+        <label class="upload-label" for="fileInput">
+          选择图片
+        </label>
+
+        <input
+          id="fileInput"
+          type="file"
+          accept="image/*"
+        >
+
+        <button id="classifyButton" disabled>
+          开始识别
+        </button>
+      </div>
+    </section>
+
+    <!-- 分类结果 -->
+    <section class="panel">
+      <h2 class="section-title">三、识别结果</h2>
+
+      <div id="resultArea" class="empty-result">
+        等待上传图片并开始识别
+      </div>
+    </section>
+
+    <div class="footer">
+      模型：MobileNetV4 Conv Small<br>
+      推理方式：浏览器端 ONNX Runtime<br>
+      模型文件托管：GitHub Pages
+    </div>
+
+  </main>
+
+  <script type="module">
+    import {
+      pipeline,
+      env
+    } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2";
+
+    // =====================================
+    // 1. 模型配置
+    // =====================================
+
+    const MODEL_ID =
+      "onnx-community/mobilenetv4_conv_small.e2400_r224_in1k";
+
+    // 自定义模型服务器
+    env.remoteHost =
+      "https://pages.maikemaker.eu.org/page2/webai/models/";
+
+    // 自定义模型文件路径
+    env.remotePathTemplate = "{model}/{file}";
+
+    // 浏览器缓存
+    env.useBrowserCache = true;
+
+    // 只从远程模型服务器加载
+    env.allowRemoteModels = true;
+    env.allowLocalModels = false;
+
+    // =====================================
+    // 2. 页面元素
+    // =====================================
+
+    const modelStatus =
+      document.getElementById("modelStatus");
+
+    const progressBar =
+      document.getElementById("progressBar");
+
+    const loadButton =
+      document.getElementById("loadButton");
+
+    const fileInput =
+      document.getElementById("fileInput");
+
+    const preview =
+      document.getElementById("preview");
+
+    const placeholder =
+      document.getElementById("placeholder");
+
+    const classifyButton =
+      document.getElementById("classifyButton");
+
+    const resultArea =
+      document.getElementById("resultArea");
+
+    let classifier = null;
+    let selectedImage = null;
+    let imageObjectUrl = null;
+
+    // =====================================
+    // 3. 模型加载
+    // =====================================
+
+    async function loadModel() {
+
+      if (classifier) return;
+
+      loadButton.disabled = true;
+      loadButton.textContent = "正在加载...";
+
+      modelStatus.className = "status";
+      modelStatus.textContent =
+        "正在初始化模型，请稍候...";
+
+      progressBar.style.width = "0%";
+
+      try {
+
+        classifier = await pipeline(
+          "image-classification",
+          MODEL_ID,
+          {
+            progress_callback: (info) => {
+
+              console.log("模型加载进度：", info);
+
+              if (info.status === "progress") {
+
+                const progress =
+                  Number(info.progress);
+
+                if (Number.isFinite(progress)) {
+                  progressBar.style.width =
+                    Math.max(0, Math.min(100, progress)) + "%";
+                }
+
+                const fileName =
+                  info.file || "模型文件";
+
+                modelStatus.textContent =
+                  `正在下载：${fileName}，` +
+                  `${Number.isFinite(progress) ? progress.toFixed(1) + "%" : "处理中"}`;
+
+              } else if (info.status === "done") {
+
+                modelStatus.textContent =
+                  `文件加载完成：${info.file || ""}`;
+
+              } else if (info.status === "initiate") {
+
+                modelStatus.textContent =
+                  `正在获取：${info.file || "模型文件"}`;
+
+              }
+            }
+          }
+        );
+
+        progressBar.style.width = "100%";
+
+        modelStatus.className = "status success";
+        modelStatus.textContent =
+          "模型加载成功！现在可以上传图片并进行识别。";
+
+        loadButton.textContent = "模型已就绪";
+
+        if (selectedImage) {
+          classifyButton.disabled = false;
+        }
+
+        console.log("模型加载成功");
+
+      } catch (error) {
+
+        console.error("模型加载失败：", error);
+
+        classifier = null;
+
+        modelStatus.className = "status error";
+        modelStatus.textContent =
+          "模型加载失败：" + (error.message || String(error));
+
+        loadButton.disabled = false;
+        loadButton.textContent = "重新加载模型";
+
+      }
+    }
+
+    loadButton.addEventListener("click", loadModel);
+
+    // =====================================
+    // 4. 图片上传和预览
+    // =====================================
+
+    fileInput.addEventListener("change", (event) => {
+
+      const file = event.target.files[0];
+
+      if (!file) return;
+
+      if (!file.type.startsWith("image/")) {
+        alert("请选择有效的图片文件。");
+        return;
+      }
+
+      if (imageObjectUrl) {
+        URL.revokeObjectURL(imageObjectUrl);
+      }
+
+      imageObjectUrl = URL.createObjectURL(file);
+
+      const image = new Image();
+
+      image.onload = () => {
+
+        selectedImage = image;
+
+        preview.src = imageObjectUrl;
+        preview.style.display = "block";
+        placeholder.style.display = "none";
+
+        classifyButton.disabled = !classifier;
+
+        resultArea.className = "empty-result";
+        resultArea.textContent =
+          classifier
+            ? "图片已准备好，点击开始识别。"
+            : "图片已上传，请先加载模型。";
+
+      };
+
+      image.onerror = () => {
+        alert("图片读取失败，请换一张图片。");
+      };
+
+      image.src = imageObjectUrl;
+
+    });
+
+    // =====================================
+    // 5. 图片分类
+    // =====================================
+
+    async function classifyImage() {
+
+      if (!classifier) {
+        alert("请先加载 AI 模型。");
+        return;
+      }
+
+      if (!selectedImage) {
+        alert("请先选择一张图片。");
+        return;
+      }
+
+      classifyButton.disabled = true;
+      classifyButton.textContent = "识别中...";
+
+      resultArea.className = "empty-result";
+      resultArea.textContent = "AI 正在分析图片...";
+
+      try {
+
+        const results = await classifier(
+          selectedImage,
+          {
+            top_k: 5
+          }
+        );
+
+        console.log("分类结果：", results);
+
+        renderResults(results);
+
+      } catch (error) {
+
+        console.error("图片识别失败：", error);
+
+        resultArea.className = "status error";
+        resultArea.textContent =
+          "识别失败：" + (error.message || String(error));
+
+      } finally {
+
+        classifyButton.disabled = !classifier;
+        classifyButton.textContent = "开始识别";
+
+      }
+    }
+
+    classifyButton.addEventListener(
+      "click",
+      classifyImage
+    );
+
+    // =====================================
+    // 6. 显示分类结果
+    // =====================================
+
+    function renderResults(results) {
+
+      if (!results || results.length === 0) {
+        resultArea.className = "empty-result";
+        resultArea.textContent = "没有识别到结果。";
+        return;
+      }
+
+      resultArea.className = "";
+
+      resultArea.innerHTML = results.map((item, index) => {
+
+        const score = Number(item.score) || 0;
+        const percentage =
+          Math.max(0, Math.min(100, score * 100));
+
+        const label = escapeHTML(item.label);
+
+        return `
+          <div class="result-item">
+            <div class="result-header">
+              <span class="result-label">
+                ${index + 1}. ${label}
+              </span>
+              <span class="result-score">
+                ${percentage.toFixed(2)}%
+              </span>
+            </div>
+            <div class="result-track">
+              <div
+                class="result-fill"
+                style="width:${percentage}%"
+              ></div>
+            </div>
+          </div>
+        `;
+
+      }).join("");
+
+    }
+
+    // 防止标签文本被当作 HTML 执行
+    function escapeHTML(value) {
+      return String(value).replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      })[char]);
+    }
+
+  </script>
+</body>
+</html>
