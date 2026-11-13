@@ -241,7 +241,7 @@ button:disabled {
 
   <div class="footer">
     MobileNetV4 · ONNX Runtime Web · Browser AI
-    <div>v1.1</div>
+    <div>v1.11</div>
   </div>
 
 </div>
@@ -413,7 +413,14 @@ fileInput.addEventListener("change", event => {
     return;
   }
 
+  // 释放上一张图片的 ObjectURL，避免内存泄漏
+  if (fileInput._lastObjectURL) {
+    URL.revokeObjectURL(fileInput._lastObjectURL);
+    fileInput._lastObjectURL = null;
+  }
+
   const url = URL.createObjectURL(file);
+  fileInput._lastObjectURL = url;
 
   const img = new Image();
 
@@ -608,7 +615,6 @@ cropDebug.appendChild(cropPreview);
   console.log("输入数据范围：", { min, max });
   console.log("输入数据长度：", tensorData.length);
   console.log("输入数据平均值：", sum / tensorData.length);
-  const channelSize = SIZE * SIZE;
 
 function channelStats(start) {
   let total = 0;
