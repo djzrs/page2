@@ -1,0 +1,124 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ONNX 模型加载测试</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f6f9;
+  padding: 30px 15px;
+  color: #222;
+}
+main {
+  max-width: 650px;
+  margin: auto;
+  background: white;
+  padding: 24px;
+  border-radius: 14px;
+}
+button, input {
+  margin: 10px 0;
+}
+button {
+  padding: 10px 20px;
+  background: #2563eb;
+  color: white;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+}
+#status {
+  padding: 14px;
+  background: #f1f5f9;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+</style>
+</head>
+<body>
+<main>
+<h2>MobileNetV4 ONNX 加载测试</h2>
+<p>模型从自己的 GitHub Pages 服务器加载。</p>
+
+<button id="load">加载模型</button>
+<br>
+<input type="file" id="image" accept="image/*" disabled>
+
+<p id="status">等待加载...</p>
+<img id="preview" style="max-width:100%;display:none">
+
+<script type="module">
+import * as ort from
+"https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.mjs";
+
+const MODEL_URL =
+"https://pages.maikemaker.eu.org/page2/webai/models/onnx-community/mobilenetv4_conv_small.e2400_r224_in1k/onnx/model_quantized.onnx";
+
+const status = document.getElementById("status");
+const loadButton = document.getElementById("load");
+const imageInput = document.getElementById("image");
+
+let session = null;
+
+loadButton.onclick = async () => {
+  loadButton.disabled = true;
+  status.textContent = "正在从自己的服务器下载 ONNX 模型...";
+
+  try {
+    const response = await fetch(MODEL_URL);
+
+    if (!response.ok) {
+      throw new Error("模型下载失败 HTTP " + response.status);
+    }
+
+    const buffer = await response.arrayBuffer();
+
+    status.textContent =
+      "模型下载成功！大小：" +
+      (buffer.byteLength / 1024 / 1024).toFixed(2) +
+      " MB\n正在初始化 ONNX Runtime...";
+
+    session = await ort.InferenceSession.create(buffer, {
+      executionProviders: ["wasm"]
+    });
+
+    status.textContent =
+      "ONNX 模型初始化成功！\n\n输入名称：" +
+      session.inputNames.join(", ") +
+      "\n输出名称：" +
+      session.outputNames.join(", ") +
+      "\n\n可以继续测试图片推理。";
+
+    imageInput.disabled = false;
+    loadButton.textContent = "模型已加载";
+
+  } catch (error) {
+    console.error(error);
+    status.textContent = "加载失败：\n" + error.message;
+    loadButton.disabled = false;
+  }
+};
+
+imageInput.onchange = async () => {
+  const file = imageInput.files[0];
+  if (!file || !session) return;
+
+  const img = document.getElementById("preview");
+  img.src = URL.createObjectURL(file);
+  img.style.display = "block";
+
+  status.textContent =
+    "图片已选择。\n模型输入信息：\n" +
+    JSON.stringify(session.inputNames) +
+    "\n\n模型输出信息：\n" +
+    JSON.stringify(session.outputNames) +
+    "\n\n下一步需要根据模型实际输入规格进行图片预处理。";
+};
+</script>
+</main>
+</body>
+</html>
