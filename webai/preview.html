@@ -3,307 +3,357 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MobileNetV4 浏览器图像分类</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>浏览器 AI 图像识别 - MobileNetV4</title>
 
 <style>
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
-  padding: 30px 15px;
-  background: #f3f5f9;
-  color: #202938;
+  padding: 30px 16px;
   font-family: Arial, "Microsoft YaHei", sans-serif;
+  background: #f4f6f9;
+  color: #263238;
 }
 
-main {
-  max-width: 680px;
-  margin: auto;
+.container {
+  max-width: 760px;
+  margin: 0 auto;
+  background: #fff;
+  padding: 28px;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0,0,0,.06);
 }
 
 h1 {
-  text-align: center;
-  font-size: 26px;
+  margin: 0 0 10px;
+  font-size: 25px;
 }
 
 .desc {
-  text-align: center;
-  color: #64748b;
-  font-size: 14px;
-  margin-bottom: 25px;
-}
-
-.panel {
-  background: white;
-  padding: 22px;
-  margin-bottom: 18px;
-  border-radius: 12px;
-  box-shadow: 0 3px 15px #00000008;
-}
-
-h2 {
-  font-size: 17px;
-  margin: 0 0 15px;
-}
-
-#status {
-  padding: 13px;
-  border-radius: 8px;
-  background: #f1f5f9;
-  color: #475569;
+  color: #718096;
   font-size: 14px;
   line-height: 1.7;
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
+  margin-bottom: 24px;
 }
 
-#status.success {
-  background: #ecfdf5;
-  color: #047857;
-}
-
-#status.error {
-  background: #fef2f2;
-  color: #b91c1c;
-}
-
-.buttons {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 15px;
-}
-
-button, .upload {
-  display: inline-block;
-  padding: 11px 20px;
-  border: none;
-  border-radius: 7px;
-  background: #2563eb;
-  color: white;
-  cursor: pointer;
+.status {
+  padding: 12px 15px;
+  border-radius: 8px;
+  background: #edf2f7;
+  color: #4a5568;
   font-size: 14px;
+  margin-bottom: 20px;
 }
 
-button:disabled {
-  background: #94a3b8;
-  cursor: not-allowed;
+.status.success {
+  background: #e6fffa;
+  color: #087f68;
 }
 
-input[type=file] {
+.status.error {
+  background: #fff0f0;
+  color: #c53030;
+}
+
+.upload {
+  display: block;
+  border: 2px dashed #cbd5e0;
+  border-radius: 12px;
+  padding: 28px;
+  text-align: center;
+  cursor: pointer;
+  color: #64748b;
+  transition: .2s;
+}
+
+.upload:hover {
+  border-color: #3182ce;
+  background: #f7fbff;
+}
+
+.upload input {
   display: none;
 }
 
 .preview {
-  min-height: 180px;
-  background: #f8fafc;
-  border: 2px dashed #cbd5e1;
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
+  display: none;
+  margin-top: 20px;
+  text-align: center;
 }
 
 .preview img {
-  display: none;
   max-width: 100%;
   max-height: 350px;
+  border-radius: 10px;
   object-fit: contain;
 }
 
-.placeholder {
-  color: #94a3b8;
-  font-size: 14px;
-  text-align: center;
-  padding: 25px;
+.buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
 }
 
-.result {
-  margin-top: 18px;
+button {
+  flex: 1;
+  border: 0;
+  border-radius: 9px;
+  padding: 13px 16px;
+  font-size: 15px;
+  cursor: pointer;
+  background: #3182ce;
+  color: white;
 }
 
-.result-row {
-  margin-bottom: 17px;
+button.secondary {
+  background: #e2e8f0;
+  color: #334155;
 }
 
-.result-title {
+button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.results {
+  margin-top: 25px;
+}
+
+.result-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.rank {
+  width: 28px;
+  color: #718096;
+  font-weight: bold;
+}
+
+.result-content {
+  flex: 1;
+}
+
+.result-label {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 7px;
+  margin-bottom: 6px;
   font-size: 14px;
-}
-
-.result-title strong {
-  overflow-wrap: anywhere;
-}
-
-.percent {
-  color: #64748b;
-  white-space: nowrap;
-}
-
-.track {
-  height: 9px;
-  background: #e2e8f0;
-  border-radius: 20px;
-  overflow: hidden;
 }
 
 .bar {
+  height: 8px;
+  background: #edf2f7;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.bar-inner {
   height: 100%;
-  background: #2563eb;
+  background: #3182ce;
+  border-radius: 10px;
+}
+
+.debug {
+  margin-top: 25px;
+  padding: 15px;
+  border-radius: 10px;
+  background: #f7fafc;
+  font-size: 13px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.debug h3 {
+  margin: 0 0 8px;
+}
+
+.debug pre {
+  white-space: pre-wrap;
+  margin: 0;
+  color: #475569;
 }
 
 .footer {
+  margin-top: 25px;
   text-align: center;
   font-size: 12px;
   color: #94a3b8;
-  line-height: 1.8;
-  margin-top: 25px;
+}
+
+@media(max-width: 520px) {
+  .container {
+    padding: 20px;
+  }
+  .buttons {
+    flex-direction: column;
+  }
 }
 </style>
 </head>
 
 <body>
 
-<main>
+<div class="container">
 
-<h1>浏览器 AI 图像分类</h1>
-<div class="desc">
-  MobileNetV4 · ONNX Runtime Web · 本地浏览器推理
-</div>
+  <h1>AI 图像识别</h1>
 
-<section class="panel">
-  <h2>一、模型状态</h2>
-
-  <div id="status">等待加载模型...</div>
-
-  <div class="buttons">
-    <button id="loadBtn">加载模型</button>
-  </div>
-</section>
-
-<section class="panel">
-  <h2>二、选择图片</h2>
-
-  <div class="preview">
-    <div id="placeholder" class="placeholder">
-      选择一张图片进行识别
-    </div>
-    <img id="previewImg" alt="图片预览">
+  <div class="desc">
+    基于 MobileNetV4 和 ONNX Runtime Web。
+    模型在浏览器本地运行，图片不会上传到服务器。
   </div>
 
-  <div class="buttons">
-    <label class="upload" for="fileInput">选择图片</label>
+  <div id="status" class="status">
+    正在初始化……
+  </div>
+
+  <label class="upload">
     <input type="file" id="fileInput" accept="image/*">
+    <div style="font-size:36px;margin-bottom:10px;">📷</div>
+    <strong>点击选择图片</strong>
+    <div style="font-size:13px;margin-top:8px;">
+      支持 JPG、PNG、WebP 等常见图片
+    </div>
+  </label>
 
-    <button id="runBtn" disabled>开始识别</button>
+  <div class="preview" id="preview">
+    <img id="previewImage" alt="待识别图片">
+    <div id="imageInfo" style="margin-top:8px;font-size:13px;color:#718096;"></div>
   </div>
-</section>
 
-<section class="panel">
-  <h2>三、识别结果（Top 5）</h2>
-  <div id="results" style="color:#94a3b8;font-size:14px">
-    等待识别...
+  <div class="buttons">
+    <button id="loadButton">加载模型</button>
+    <button id="runButton" disabled>开始识别</button>
   </div>
-</section>
 
-<div class="footer">
-  模型：MobileNetV4 Conv Small<br>
-  数据集：ImageNet-1K（1000 类）<br>
-  模型托管：GitHub Pages
+  <div class="results" id="results"></div>
+
+  <div class="debug">
+    <h3>调试信息</h3>
+    <pre id="debugInfo">等待模型加载……</pre>
+  </div>
+
+  <div class="footer">
+    MobileNetV4 · ONNX Runtime Web · Browser AI
+    <div>v1</div>
+  </div>
+
 </div>
-
-</main>
 
 <script type="module">
-
-// ========================================
-// 1. 导入 ONNX Runtime
-// ========================================
 
 import * as ort from
 "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.mjs";
 
-// ========================================
-// 2. 模型地址
-// ========================================
+// ===============================
+// 1. 模型文件地址
+// ===============================
 
-const BASE =
+const BASE_URL =
 "https://pages.maikemaker.eu.org/page2/webai/models/onnx-community/mobilenetv4_conv_small.e2400_r224_in1k/";
 
-const MODEL_URL = BASE + "onnx/model_quantized.onnx";
-const CONFIG_URL = BASE + "config.json";
-const PREPROCESS_URL = BASE + "preprocessor_config.json";
+const MODEL_URL =
+BASE_URL + "onnx/model_quantized.onnx";
 
-// ========================================
-// 3. 页面元素
-// ========================================
+const CONFIG_URL =
+BASE_URL + "config.json";
 
-const status = document.getElementById("status");
-const loadBtn = document.getElementById("loadBtn");
-const runBtn = document.getElementById("runBtn");
-const fileInput = document.getElementById("fileInput");
-const previewImg = document.getElementById("previewImg");
-const placeholder = document.getElementById("placeholder");
-const results = document.getElementById("results");
+const PREPROCESS_URL =
+BASE_URL + "preprocessor_config.json";
+
+const SIZE = 224;
+const RESIZE_SIZE = 256;
+
+// ===============================
+// 2. 全局变量
+// ===============================
 
 let session = null;
-let labels = {};
+let config = null;
+let preprocessConfig = null;
 let selectedImage = null;
-let objectURL = null;
 
-// ========================================
-// 4. 加载模型和配置
-// ========================================
+const statusEl = document.getElementById("status");
+const debugEl = document.getElementById("debugInfo");
+const fileInput = document.getElementById("fileInput");
+const preview = document.getElementById("preview");
+const previewImage = document.getElementById("previewImage");
+const imageInfo = document.getElementById("imageInfo");
+const loadButton = document.getElementById("loadButton");
+const runButton = document.getElementById("runButton");
+const resultsEl = document.getElementById("results");
 
-loadBtn.onclick = async () => {
+// ===============================
+// 3. 状态显示
+// ===============================
 
-  loadBtn.disabled = true;
-  status.className = "";
-  status.textContent = "正在下载模型和配置文件...";
+function setStatus(message, type = "") {
+  statusEl.textContent = message;
+  statusEl.className = "status " + type;
+}
+
+function setDebug(message) {
+  debugEl.textContent = message;
+}
+
+// ===============================
+// 4. 加载 JSON
+// ===============================
+
+async function loadJSON(url) {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(
+      "文件加载失败：" + url + "，HTTP " + response.status
+    );
+  }
+
+  return await response.json();
+}
+
+// ===============================
+// 5. 加载模型
+// ===============================
+
+async function loadModel() {
+
+  if (session) {
+    setStatus("模型已经加载完成", "success");
+    return;
+  }
+
+  loadButton.disabled = true;
+  setStatus("正在加载模型，请稍候……");
 
   try {
 
-    // 下载模型配置
-    const configResponse = await fetch(CONFIG_URL);
+    console.log("开始加载模型配置");
 
-    if (!configResponse.ok) {
-      throw new Error("config.json 下载失败：" + configResponse.status);
+    config = await loadJSON(CONFIG_URL);
+    preprocessConfig = await loadJSON(PREPROCESS_URL);
+
+    console.log("模型配置：", config);
+    console.log("预处理配置：", preprocessConfig);
+
+    setStatus("正在下载 ONNX 模型……");
+
+    const response = await fetch(MODEL_URL);
+
+    if (!response.ok) {
+      throw new Error("ONNX 模型下载失败，HTTP " + response.status);
     }
 
-    const config = await configResponse.json();
-    labels = config.id2label || {};
+    const modelBuffer = await response.arrayBuffer();
 
-    // 读取预处理配置
-    const preprocessResponse = await fetch(PREPROCESS_URL);
+    console.log("模型文件大小：", modelBuffer.byteLength);
 
-    if (!preprocessResponse.ok) {
-      throw new Error("preprocessor_config.json 下载失败：" + preprocessResponse.status);
-    }
-
-    const preprocess = await preprocessResponse.json();
-
-    // 下载 ONNX 模型
-    status.textContent = "正在下载 ONNX 模型...";
-
-    const modelResponse = await fetch(MODEL_URL);
-
-    if (!modelResponse.ok) {
-      throw new Error("模型下载失败：" + modelResponse.status);
-    }
-
-    const modelBuffer = await modelResponse.arrayBuffer();
-
-    status.textContent =
-      "模型下载成功，大小：" +
-      (modelBuffer.byteLength / 1024 / 1024).toFixed(2) +
-      " MB\n正在初始化推理引擎...";
-
-    // 创建 ONNX Session
     session = await ort.InferenceSession.create(
       modelBuffer,
       {
@@ -311,269 +361,417 @@ loadBtn.onclick = async () => {
       }
     );
 
-    // 保存预处理参数
-    window.modelPreprocess = preprocess;
+    // Session 创建成功后再读取信息
+    console.log("模型输入信息：", session.inputMetadata);
+    console.log("模型输入名称：", session.inputNames);
+    console.log("模型输出名称：", session.outputNames);
 
-    status.className = "success";
+    setDebug(
+      "模型加载成功\n\n" +
+      "输入名称：" + session.inputNames.join(", ") + "\n" +
+      "输出名称：" + session.outputNames.join(", ") + "\n" +
+      "模型文件大小：" + modelBuffer.byteLength + " bytes\n\n" +
+      "输入信息：\n" +
+      JSON.stringify(session.inputMetadata, null, 2)
+    );
 
-    status.textContent =
-      "模型加载成功！\n" +
-      "输入：" + session.inputNames.join(", ") + "\n" +
-      "输出：" + session.outputNames.join(", ") + "\n" +
-      "类别数量：" + Object.keys(labels).length;
+    setStatus("模型加载成功，可以开始识别", "success");
 
-    loadBtn.textContent = "模型已加载";
-
-    runBtn.disabled = !selectedImage;
-
-    console.log("模型配置：", config);
-    console.log("预处理配置：", preprocess);
-    console.log("ONNX Session：", session);
+    if (selectedImage) {
+      runButton.disabled = false;
+    }
 
   } catch (error) {
 
-    console.error(error);
+    console.error("模型加载错误：", error);
 
-    status.className = "error";
-    status.textContent = "加载失败：\n" + error.message;
+    setStatus("模型加载失败：" + error.message, "error");
+
+    setDebug(error.stack || error.message);
 
     session = null;
-    loadBtn.disabled = false;
-    loadBtn.textContent = "重新加载模型";
+
+  } finally {
+
+    loadButton.disabled = false;
+
   }
-};
+}
 
-// ========================================
-// 5. 图片选择
-// ========================================
+// ===============================
+// 6. 图片上传
+// ===============================
 
-fileInput.onchange = () => {
+fileInput.addEventListener("change", event => {
 
-  const file = fileInput.files[0];
+  const file = event.target.files[0];
 
   if (!file) return;
 
   if (!file.type.startsWith("image/")) {
-    alert("请选择图片文件");
+    setStatus("请选择有效的图片文件", "error");
     return;
   }
 
-  if (objectURL) {
-    URL.revokeObjectURL(objectURL);
-  }
+  const url = URL.createObjectURL(file);
 
-  objectURL = URL.createObjectURL(file);
+  const img = new Image();
 
-  const image = new Image();
+  img.onload = () => {
 
-  image.onload = () => {
+    selectedImage = img;
 
-    selectedImage = image;
+    previewImage.src = url;
 
-    previewImg.src = objectURL;
-    previewImg.style.display = "block";
-    placeholder.style.display = "none";
+    preview.style.display = "block";
 
-    runBtn.disabled = !session;
+    imageInfo.textContent =
+      "原始尺寸：" + img.naturalWidth +
+      " × " + img.naturalHeight;
 
-    results.textContent =
-      session ? "图片已准备好，可以开始识别。" : "请先加载模型。";
+    resultsEl.innerHTML = "";
+
+    setStatus(
+      session ? "图片已选择，可以开始识别" : "图片已选择，请先加载模型"
+    );
+
+    runButton.disabled = !session;
+
   };
 
-  image.onerror = () => {
-    alert("图片读取失败");
+  img.onerror = () => {
+    URL.revokeObjectURL(url);
+    setStatus("图片读取失败", "error");
   };
 
-  image.src = objectURL;
-};
+  img.src = url;
 
-// ========================================
-// 6. 图片预处理
-// ========================================
+});
 
-function preprocessImage(image) {
+// ===============================
+// 7. 图片预处理
+// ===============================
 
-  const SIZE = 224;
-  const RESIZE_SHORT = 256;
+function preprocessImage(img) {
 
-  // 按短边缩放至 256
-  const scale = RESIZE_SHORT /
-    Math.min(image.width, image.height);
+  const sourceWidth = img.naturalWidth;
+  const sourceHeight = img.naturalHeight;
 
-  const resizedWidth = Math.round(image.width * scale);
-  const resizedHeight = Math.round(image.height * scale);
+  // 按最短边缩放到 256
+  const scale = RESIZE_SIZE /
+    Math.min(sourceWidth, sourceHeight);
 
-  const canvas = document.createElement("canvas");
+  const resizedWidth = Math.round(sourceWidth * scale);
+  const resizedHeight = Math.round(sourceHeight * scale);
 
-  canvas.width = SIZE;
-  canvas.height = SIZE;
+  const resizeCanvas = document.createElement("canvas");
 
-  const ctx = canvas.getContext("2d", {
+  resizeCanvas.width = resizedWidth;
+  resizeCanvas.height = resizedHeight;
+
+  const resizeCtx = resizeCanvas.getContext("2d", {
     willReadFrequently: true
   });
 
-  // 高质量缩放
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
+  resizeCtx.imageSmoothingEnabled = true;
+  resizeCtx.imageSmoothingQuality = "high";
 
-  // 中心裁剪 224 × 224
-  const sx = (resizedWidth - SIZE) / 2;
-  const sy = (resizedHeight - SIZE) / 2;
-
-  ctx.drawImage(
-    image,
-    0, 0, image.width, image.height,
-    -sx, -sy, resizedWidth, resizedHeight
+  resizeCtx.drawImage(
+    img,
+    0,
+    0,
+    resizedWidth,
+    resizedHeight
   );
 
-  const pixels = ctx.getImageData(
-    0, 0, SIZE, SIZE
-  ).data;
+  // 中心裁剪 224 × 224
+  const cropX = Math.floor((resizedWidth - SIZE) / 2);
+  const cropY = Math.floor((resizedHeight - SIZE) / 2);
 
-  // ImageNet 标准化参数
-  const mean = [0.485, 0.456, 0.406];
-  const std = [0.229, 0.224, 0.225];
+  const cropCanvas = document.createElement("canvas");
 
-  // NCHW: [1, 3, 224, 224]
+  cropCanvas.width = SIZE;
+  cropCanvas.height = SIZE;
+
+  const cropCtx = cropCanvas.getContext("2d", {
+    willReadFrequently: true
+  });
+
+  cropCtx.drawImage(
+    resizeCanvas,
+    cropX,
+    cropY,
+    SIZE,
+    SIZE,
+    0,
+    0,
+    SIZE,
+    SIZE
+  );
+
+  const imageData = cropCtx.getImageData(
+    0,
+    0,
+    SIZE,
+    SIZE
+  );
+
+  const pixels = imageData.data;
+
+  const mean = preprocessConfig.image_mean || [
+    0.485, 0.456, 0.406
+  ];
+
+  const std = preprocessConfig.image_std || [
+    0.229, 0.224, 0.225
+  ];
+
+  const rescaleFactor =
+    preprocessConfig.rescale_factor || (1 / 255);
+
+  // NCHW 格式
   const tensorData = new Float32Array(
     3 * SIZE * SIZE
   );
 
-  for (let i = 0; i < SIZE * SIZE; i++) {
+  const channelSize = SIZE * SIZE;
 
-    const r = pixels[i * 4] / 255;
-    const g = pixels[i * 4 + 1] / 255;
-    const b = pixels[i * 4 + 2] / 255;
+  for (let y = 0; y < SIZE; y++) {
 
-    tensorData[i] =
-      (r - mean[0]) / std[0];
+    for (let x = 0; x < SIZE; x++) {
 
-    tensorData[SIZE * SIZE + i] =
-      (g - mean[1]) / std[1];
+      const pixelIndex = (y * SIZE + x) * 4;
 
-    tensorData[2 * SIZE * SIZE + i] =
-      (b - mean[2]) / std[2];
+      const tensorIndex = y * SIZE + x;
+
+      const r = pixels[pixelIndex] * rescaleFactor;
+      const g = pixels[pixelIndex + 1] * rescaleFactor;
+      const b = pixels[pixelIndex + 2] * rescaleFactor;
+
+      tensorData[tensorIndex] =
+        (r - mean[0]) / std[0];
+
+      tensorData[channelSize + tensorIndex] =
+        (g - mean[1]) / std[1];
+
+      tensorData[channelSize * 2 + tensorIndex] =
+        (b - mean[2]) / std[2];
+
+    }
+
   }
 
-  return new ort.Tensor(
+  // 创建 ONNX 输入张量
+  const inputTensor = new ort.Tensor(
     "float32",
     tensorData,
     [1, 3, SIZE, SIZE]
   );
+
+  // ===============================
+  // 调试信息
+  // ===============================
+
+  let min = Infinity;
+  let max = -Infinity;
+  let sum = 0;
+
+  for (const value of tensorData) {
+    if (value < min) min = value;
+    if (value > max) max = value;
+    sum += value;
+  }
+
+  console.log("输入张量维度：", inputTensor.dims);
+  console.log("输入张量类型：", inputTensor.type);
+  console.log("输入数据范围：", { min, max });
+  console.log("输入数据长度：", tensorData.length);
+  console.log("输入数据平均值：", sum / tensorData.length);
+
+  console.log("缩放后尺寸：", resizedWidth, resizedHeight);
+  console.log("中心裁剪位置：", cropX, cropY);
+
+  setDebug(
+    "图片预处理完成\n\n" +
+    "原始图片：" + sourceWidth + " × " + sourceHeight + "\n" +
+    "缩放尺寸：" + resizedWidth + " × " + resizedHeight + "\n" +
+    "裁剪位置：" + cropX + ", " + cropY + "\n" +
+    "裁剪尺寸：224 × 224\n\n" +
+    "输入张量维度：" + JSON.stringify(inputTensor.dims) + "\n" +
+    "输入张量类型：" + inputTensor.type + "\n" +
+    "数据长度：" + tensorData.length + "\n" +
+    "数据范围：" + min.toFixed(4) + " ~ " + max.toFixed(4) + "\n" +
+    "数据平均值：" + (sum / tensorData.length).toFixed(4)
+  );
+
+  return inputTensor;
+
 }
 
-// ========================================
-// 7. Softmax
-// ========================================
+// ===============================
+// 8. Softmax
+// ===============================
 
 function softmax(logits) {
 
   const max = Math.max(...logits);
 
-  const exps = logits.map(
-    value => Math.exp(value - max)
+  const exps = logits.map(value =>
+    Math.exp(value - max)
   );
 
   const sum = exps.reduce(
-    (a, b) => a + b, 0
+    (a, b) => a + b,
+    0
   );
 
   return exps.map(value => value / sum);
+
 }
 
-// ========================================
-// 8. 图片分类
-// ========================================
+// ===============================
+// 9. 分类识别
+// ===============================
 
-runBtn.onclick = async () => {
+async function classifyImage() {
 
-  if (!session || !selectedImage) return;
+  if (!session) {
+    setStatus("请先加载模型", "error");
+    return;
+  }
 
-  runBtn.disabled = true;
-  runBtn.textContent = "识别中...";
+  if (!selectedImage) {
+    setStatus("请先选择图片", "error");
+    return;
+  }
 
-  results.textContent = "正在进行图片推理...";
+  runButton.disabled = true;
+
+  setStatus("正在进行图像识别……");
+
+  resultsEl.innerHTML = "";
 
   try {
 
-    // 图片预处理
+    // 生成输入张量
     const inputTensor = preprocessImage(selectedImage);
 
-    // 执行推理
     const inputName = session.inputNames[0];
+    const outputName = session.outputNames[0];
 
+    // 执行模型推理
     const output = await session.run({
       [inputName]: inputTensor
     });
 
-    // 获取 logits
-    const outputName = session.outputNames[0];
+    console.log("模型输出维度：", output[outputName].dims);
+
     const logits = Array.from(output[outputName].data);
 
-    // Softmax 转概率
+    console.log("Logits 数量：", logits.length);
+
+    // Softmax
     const probabilities = softmax(logits);
 
-    // 排序取前 5
+    // 排序取 Top 5
     const topResults = probabilities
       .map((score, index) => ({
         index,
         score,
-        label: labels[String(index)] || ("类别 " + index)
+        label: config.id2label?.[index] ??
+          config.id2label?.[String(index)] ??
+          ("类别 " + index)
       }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
 
-    console.log("分类结果：", topResults);
+    console.log("Top 5 分类结果：", topResults);
 
-    // 显示结果
-    results.innerHTML = topResults.map((item, i) => {
+    // 显示分类结果
+    resultsEl.innerHTML = "<h3>识别结果 Top 5</h3>";
 
-      const percent = item.score * 100;
+    topResults.forEach((item, index) => {
 
-      const safeLabel = escapeHTML(item.label);
+      const percentage = (item.score * 100).toFixed(2);
 
-      return `
-        <div class="result-row">
-          <div class="result-title">
-            <strong>${i + 1}. ${safeLabel}</strong>
-            <span class="percent">${percent.toFixed(2)}%</span>
-          </div>
-          <div class="track">
-            <div class="bar" style="width:${percent}%"></div>
-          </div>
-        </div>
-      `;
+      const row = document.createElement("div");
+      row.className = "result-item";
 
-    }).join("");
+      const rank = document.createElement("div");
+      rank.className = "rank";
+      rank.textContent = index + 1;
+
+      const content = document.createElement("div");
+      content.className = "result-content";
+
+      const label = document.createElement("div");
+      label.className = "result-label";
+
+      const name = document.createElement("span");
+      name.textContent = item.label;
+
+      const score = document.createElement("strong");
+      score.textContent = percentage + "%";
+
+      label.append(name, score);
+
+      const bar = document.createElement("div");
+      bar.className = "bar";
+
+      const barInner = document.createElement("div");
+      barInner.className = "bar-inner";
+      barInner.style.width = percentage + "%";
+
+      bar.appendChild(barInner);
+
+      content.append(label, bar);
+      row.append(rank, content);
+
+      resultsEl.appendChild(row);
+
+    });
+
+    setStatus("识别完成", "success");
+
+    setDebug(
+      debugEl.textContent +
+      "\n\n模型输出维度：" +
+      JSON.stringify(output[outputName].dims) +
+      "\nLogits 数量：" + logits.length +
+      "\n\nTop 5 分类结果：\n" +
+      JSON.stringify(topResults, null, 2)
+    );
 
   } catch (error) {
 
-    console.error(error);
+    console.error("识别错误：", error);
 
-    results.textContent =
-      "识别失败：" + error.message;
+    setStatus("识别失败：" + error.message, "error");
+
+    setDebug(
+      debugEl.textContent +
+      "\n\n识别错误：\n" +
+      (error.stack || error.message)
+    );
 
   } finally {
 
-    runBtn.disabled = false;
-    runBtn.textContent = "开始识别";
+    runButton.disabled = false;
+
   }
-};
 
-// ========================================
-// 9. HTML 安全转义
-// ========================================
-
-function escapeHTML(value) {
-
-  return String(value).replace(/[&<>"']/g, char => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  })[char]);
 }
+
+// ===============================
+// 10. 按钮事件
+// ===============================
+
+loadButton.addEventListener("click", loadModel);
+
+runButton.addEventListener("click", classifyImage);
+
+// 页面初始化
+setStatus("请选择图片，然后加载模型");
 
 </script>
 
