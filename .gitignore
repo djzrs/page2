@@ -1,0 +1,15 @@
+# TTS 源码依赖与产物
+tts-src/node_modules/
+tts-src/dist/
+tts-src/public/wasm/
+
+# 站点构建产物（由 CI 从 tts-src 生成后发布到 gh-pages）
+tts/
+
+# 站点汇总临时目录
+_site/
+
+# 日志与系统文件
+*.log
+.DS_Store
+Thumbs.db

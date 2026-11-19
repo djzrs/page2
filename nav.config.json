@@ -1,0 +1,26 @@
+{
+  "siteTitle": "我的演示站点",
+  "siteSubtitle": "部署在 GitHub Pages 的浏览器端 AI 演示集合",
+  "order": ["tts", "mp", "webai"],
+  "projects": {
+    "tts": {
+      "name": "中文语音合成",
+      "desc": "基于 MediaPipe Kokoro 的纯浏览器中文 TTS，支持流式播放与逐词高亮。",
+      "icon": "record_voice_over",
+      "entry": "index.html"
+    },
+    "mp": {
+      "name": "MediaPipe 示例合集",
+      "desc": "Google 官方 Tasks 演示：视觉、音频、文本、决策等 21 个示例。",
+      "icon": "visibility",
+      "entry": "index.html"
+    },
+    "webai": {
+      "name": "Web AI 实验",
+      "desc": "TensorFlow.js 目标检测等浏览器端机器学习小实验。",
+      "icon": "smart_toy",
+      "entry": "coco-ssd.html"
+    }
+  },
+  "exclude": ["tts-src", "_site", ".git", ".github", "node_modules"]
+}

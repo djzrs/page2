@@ -41,13 +41,21 @@ jobs:
         env:
           OUT_DIR: ../tts
 
-      - name: 准备站点目录（汇总 mp / tts / webai）
+      - name: 准备站点目录（自动汇总所有子项目）
         run: |
           rm -rf _site
           mkdir -p _site
-          cp -r mp _site/
-          cp -r tts _site/
-          cp -r webai _site/
+          # 把根目录下所有子项目目录复制进 _site（排除源码/配置/工作流）。
+          for d in */; do
+            name="${d%/}"
+            case "$name" in
+              tts-src|_site|node_modules|.git|.github) continue ;;
+            esac
+            cp -r "$name" _site/
+          done
+
+      - name: 自动生成导航首页
+        run: node gen-nav.mjs ./_site/index.html
 
       - name: 发布站点到 gh-pages 分支
         uses: peaceiris/actions-gh-pages@v4
