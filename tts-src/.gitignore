@@ -1,0 +1,18 @@
+# 依赖
+node_modules/
+
+# 构建产物（CI 会重新生成）
+dist/
+
+# WASM 由 predev / prebuild 的 copy-wasm.js 自动生成
+public/wasm/
+
+# 日志
+*.log
+pnpm-debug.log*
+
+# 编辑器 / 系统
+.DS_Store
+.vscode/
+.idea/
+Thumbs.db

@@ -1,0 +1,23 @@
+{
+  "name": "mediapipe-tts-zh",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev": "vite",
+    "predev": "node copy-wasm.js",
+    "build": "tsc && vite build",
+    "prebuild": "node copy-wasm.js",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-audio": "^1.2.3",
+    "@mediapipe/tasks-vision": "^1.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5"
+  }
+}

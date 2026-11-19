@@ -1,0 +1,343 @@
+/**
+ * Copyright 2026 The MediaPipe Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { ModelSelector, loadPhaseLabel, type LoadPhase, type ModelSelectorConfig } from './model-selector';
+import { InferenceTimer } from './inference-timer';
+import { publishTestResult } from './test-hooks';
+
+export interface BaseTaskOptions {
+  container: HTMLElement;
+  template: string;
+  defaultModelName: string;
+  defaultModelUrl: string;
+  models?: Record<string, string>;
+  workerFactory: () => Worker;
+  defaultDelegate?: 'CPU' | 'GPU';
+}
+
+export abstract class BaseTask {
+  protected container: HTMLElement;
+  protected worker: Worker | undefined;
+
+  protected currentModel: string;
+  protected models: Record<string, string> = {};
+  /** Set when the user uploads a model file; used while `currentModel` is 'custom'. */
+  protected customModelFile: File | undefined;
+  protected modelSelector!: ModelSelector;
+  protected currentDelegate: 'CPU' | 'GPU' = 'GPU';
+  protected inferenceTimer = new InferenceTimer();
+  protected initQueue: string[] = [];
+
+  protected isWorkerReady = false;
+  /** Set once a model load has been requested (explicitly or automatically). */
+  protected modelRequested = false;
+
+  constructor(protected options: BaseTaskOptions) {
+    this.container = options.container;
+    this.currentModel = options.defaultModelName;
+    this.models[options.defaultModelName] = options.defaultModelUrl;
+    if (options.models) Object.assign(this.models, options.models);
+    if (options.defaultDelegate) {
+      this.currentDelegate = options.defaultDelegate;
+    }
+  }
+
+  public async initialize() {
+    this.container.innerHTML = this.options.template;
+
+    this.initWorker();
+    this.setupUI();
+
+    // Child class hook
+    this.onInitializeUI();
+    this.setupDelegateSelect();
+
+    // Large default models wait for "Download and Initialize" (or for the selector to
+    // auto-load the model if it is already cached).
+    if (this.modelSelector && !this.modelSelector.isAutoLoad(this.currentModel)) {
+      this.updateStatus('模型未加载');
+      return;
+    }
+    await this.initializeTask();
+  }
+
+  protected initWorker() {
+    if (!this.worker) {
+      this.worker = this.options.workerFactory();
+    }
+    if (this.worker) {
+      this.worker.onmessage = (event: MessageEvent) => {
+        // Track what the worker has loaded before any subclass handles the message.
+        if (event.data?.type === 'INIT_DONE') {
+          this.loadedModel = event.data.modelName ?? this.initQueue[0] ?? this.currentModel;
+          this.loadedDelegate = event.data.delegate ?? this.currentDelegate;
+        }
+        this.handleWorkerMessage(event);
+      };
+    }
+  }
+
+  /**
+   * The model and delegate the worker reported as loaded. These lag behind
+   * `currentModel` / `currentDelegate` while a newly selected model is loading,
+   * so they identify what actually produced a result.
+   */
+  protected loadedModel: string | undefined;
+  protected loadedDelegate: string | undefined;
+
+  protected hadDelegateFallback = false;
+
+  protected handleWorkerMessage(event: MessageEvent) {
+    const { type } = event.data;
+
+    switch (type) {
+      case 'LOAD_PROGRESS':
+        this.handleLoadProgress(event.data);
+        break;
+
+      case 'INIT_DONE':
+        this.handleInitDone(event.data);
+        break;
+
+      case 'MODEL_CACHED':
+        this.modelSelector?.refreshCacheState();
+        break;
+
+      case 'DELEGATE_FALLBACK':
+        const { reason, advice } = event.data;
+        const msg = advice ? `${reason}（${advice}）` : 'GPU 不可用。';
+        console.warn(`Worker fell back to CPU delegate: ${msg}`);
+        this.currentDelegate = 'CPU';
+        this.hadDelegateFallback = true;
+        const delSelect = document.getElementById('delegate-select') as HTMLSelectElement;
+        if (delSelect) delSelect.value = 'CPU';
+        this.renderFallbackWarning(msg);
+        break;
+
+      case 'ERROR':
+      case 'DETECT_ERROR':
+      case 'CLASSIFY_ERROR':
+        if (this.initQueue.length > 0) {
+          this.initQueue.shift();
+        }
+        console.error('Worker error:', event.data.error);
+        this.modelSelector?.hideProgress();
+        this.modelSelector?.setBusy(false);
+        this.setLoadingOverlay(null);
+        this.updateStatus(`错误：${event.data.error}`);
+        break;
+    }
+  }
+
+  protected handleLoadProgress(data: any) {
+    const { progress, loaded, total } = data;
+    if (progress !== undefined) {
+      this.modelSelector?.showProgress(progress * 100, 100);
+      if (progress >= 1) setTimeout(() => this.modelSelector?.hideProgress(), 500);
+    } else if (loaded !== undefined && total !== undefined) {
+      this.modelSelector?.showProgress(loaded, total);
+      if (total > 0 && loaded >= total) setTimeout(() => this.modelSelector?.hideProgress(), 500);
+    }
+  }
+
+  protected handleInitDone(data?: any) {
+    let loadedModel = data?.modelName;
+    if (loadedModel === undefined) {
+      loadedModel = this.initQueue.length > 0 ? this.initQueue[0] : this.currentModel;
+    }
+    if (this.initQueue.length > 0) {
+      this.initQueue.shift();
+    }
+
+    if (loadedModel !== this.currentModel) {
+      // Ignore INIT_DONE for a previous model if the user already switched to a new one
+      return;
+    }
+
+    this.modelSelector?.hideProgress();
+    this.modelSelector?.setBusy(false);
+    this.modelSelector?.setLoaded(loadedModel === 'custom' ? null : loadedModel);
+    this.setLoadingOverlay(null);
+    this.isWorkerReady = true;
+    if (this.hadDelegateFallback) {
+      this.updateStatus('GPU 不可用，已切换到 CPU（就绪）。');
+      this.hadDelegateFallback = false;
+    } else {
+      this.updateStatus('就绪');
+    }
+  }
+
+  protected setupDelegateSelect() {
+    const delegateSelect = document.getElementById('delegate-select') as HTMLSelectElement;
+    if (delegateSelect) {
+      delegateSelect.addEventListener('change', async () => {
+        this.currentDelegate = delegateSelect.value as 'GPU' | 'CPU';
+        // Only reload a model that was already requested; never start a
+        // (potentially large) download just because the delegate changed.
+        if (this.modelRequested) await this.initializeTask();
+      });
+      delegateSelect.value = this.currentDelegate;
+    }
+  }
+
+  protected setupUI() {
+    this.modelSelector = new ModelSelector(
+      'model-selector-container',
+      Object.keys(this.models).map((name) => ({
+        label: name,
+        value: name,
+        isDefault: name === this.options.defaultModelName,
+      })),
+      async (selection) => {
+        if (selection.type === 'standard') {
+          this.currentModel = selection.value;
+          this.customModelFile = undefined;
+        } else if (selection.type === 'custom') {
+          this.customModelFile = selection.file;
+          this.currentModel = 'custom';
+        }
+        await this.initializeTask();
+      },
+      this.getModelSelectorConfig()
+    );
+    this.modelSelector.onPhaseChange = (phase) => {
+      // Follow the load from downloading to initializing.
+      if (phase && document.querySelector('.viewport.loading-model')) {
+        this.setLoadingOverlay(phase);
+        this.updateStatus(loadPhaseLabel(phase));
+      }
+    };
+    this.inferenceTimer.mount();
+  }
+
+  /**
+   * Model selector configuration. Whether a model downloads on selection is
+   * decided per model, by download size; `autoLoad` is the fallback for models
+   * of unknown size (see `ModelSelector.isAutoLoad()`).
+   */
+  protected getModelSelectorConfig(): ModelSelectorConfig {
+    return { resolveUrl: (value) => this.resolveModelUrl(value) };
+  }
+
+  /** Absolute download URL of a standard model, or undefined if unknown. */
+  protected resolveModelUrl(modelName: string): string | undefined {
+    const modelPath = this.models[modelName];
+    if (!modelPath) return undefined;
+    if (modelPath.startsWith('http')) return modelPath;
+    // @ts-ignore
+    const baseUrl = new URL(import.meta.env.BASE_URL, window.location.href).href;
+    return new URL(modelPath, baseUrl).href;
+  }
+
+  /**
+   * Shows the load phase over the viewport (blocking interaction), or removes
+   * the overlay (`null`).
+   */
+  protected setLoadingOverlay(phase: LoadPhase | null) {
+    const viewport = document.querySelector<HTMLElement>('.viewport');
+    if (!viewport) return;
+    viewport.classList.toggle('loading-model', phase !== null);
+    if (phase) viewport.dataset.loadingText = loadPhaseLabel(phase);
+  }
+
+  protected async initializeTask(): Promise<void> {
+    this.modelRequested = true;
+    this.isWorkerReady = false;
+    this.inferenceTimer.resetRollingWindow();
+    this.modelSelector?.setBusy(true);
+    const phase = this.modelSelector?.getPhase() ?? 'initializing';
+    this.setLoadingOverlay(phase);
+    this.updateStatus(loadPhaseLabel(phase));
+
+    // @ts-ignore
+    const baseUrl = new URL(import.meta.env.BASE_URL, window.location.href).href;
+    const modelFile = this.currentModel === 'custom' ? this.customModelFile : undefined;
+    const modelPath = modelFile ? undefined : this.resolveModelUrl(this.currentModel);
+
+    const initParams = this.getWorkerInitParamsInner();
+
+    // The worker downloads `modelAssetPath` through the shared model cache, or
+    // streams `modelFile` (an uploaded File) directly.
+    this.initQueue.push(this.currentModel);
+    this.worker?.postMessage({
+      type: 'INIT',
+      modelName: this.currentModel,
+      modelAssetPath: modelPath,
+      modelFile,
+      delegate: this.currentDelegate,
+      baseUrl,
+      ...initParams,
+    });
+  }
+
+  protected getWorkerInitParamsInner(): Record<string, any> {
+    return this.getWorkerInitParams();
+  }
+
+  protected updateStatus(msg: string) {
+    const el = document.getElementById('status-message');
+    if (el) el.innerText = msg;
+    this.inferenceTimer.syncStatusVisibility(msg);
+  }
+
+  protected updateInferenceTime(time: number): number {
+    return this.inferenceTimer.record(time, this.currentDelegate);
+  }
+
+  /**
+   * Publishes a summary of the latest result for automated validation, tagged
+   * with the model and delegate that produced it (what the worker has loaded,
+   * not what is currently selected). A no-op for real users.
+   */
+  protected publishTestResult(task: string, buildPayload: () => Record<string, unknown>) {
+    publishTestResult(task, () => ({
+      model: this.loadedModel ?? null,
+      delegate: this.loadedDelegate ?? null,
+      ...buildPayload(),
+    }));
+  }
+
+  public cleanup() {
+    this.inferenceTimer.cleanup();
+    if (this.worker) {
+      this.worker.postMessage({ type: 'CLEANUP' });
+      this.worker.terminate();
+      this.worker = undefined;
+    }
+
+    this.isWorkerReady = false;
+  }
+
+  protected renderFallbackWarning(msg: string) {
+    let warningEl = document.getElementById('fallback-warning');
+    if (!warningEl) {
+      const statusGroup = document.querySelector('.status-group');
+      if (statusGroup) {
+        warningEl = document.createElement('div');
+        warningEl.id = 'fallback-warning';
+        warningEl.className = 'fallback-warning';
+        warningEl.style.cssText = 'color: #d97706; font-size: 0.85rem; margin-top: 4px;' + ' font-weight: 500;';
+        statusGroup.appendChild(warningEl);
+      }
+    }
+    if (warningEl) {
+      warningEl.innerText = `⚠️ GPU 不可用（${msg}），已切换到 CPU 运行。`;
+    }
+  }
+
+  protected onInitializeUI(): void {}
+  protected abstract getWorkerInitParams(): Record<string, any>;
+}

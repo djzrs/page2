@@ -63,373 +63,373 @@
         <div class="inference-delegate-summary">
           ${t}
         </div>
-      `,e.appendChild(o)}this.canvas=o.querySelector(`#inference-history-canvas`),this.gpuAvgEl=o.querySelector(`#inference-gpu-avg`),this.cpuAvgEl=o.querySelector(`#inference-cpu-avg`),this.seriesAAvgEl=o.querySelector(`#inference-series-a-avg`),this.seriesBAvgEl=o.querySelector(`#inference-series-b-avg`),this.drawGraph(),this.updateDelegateSummaries()}syncStatusVisibility(e,t){let n=document.getElementById(`status-message`);if(this.valueBadgeEl&&this.valueBadgeEl.isConnected||(this.valueBadgeEl=document.getElementById(`inference-time-value`)),!this.valueBadgeEl)return;let r=t===`error`||/^error\b/i.test(e.trim())||e.toLowerCase().includes(`failed`),i=t===`idle`||t===`ready`||e.startsWith(`Done`)||e===`就绪`||e===`Ready`||e===`Webcam running...`||/ready/i.test(e);r?(n&&(n.classList.remove(`sr-only-status`),n.classList.add(`status-error`)),this.valueBadgeEl.classList.add(`error`),this.valueBadgeEl.textContent=`错误`):(n&&(n.classList.remove(`status-error`),n.classList.add(`sr-only-status`)),this.valueBadgeEl.classList.remove(`error`),i?this.lastDisplayedAvg>0?this.valueBadgeEl.textContent=`${this.lastDisplayedAvg.toFixed(2)} ms`:this.valueBadgeEl.textContent=`- ms`:this.valueBadgeEl.textContent=e.length>24?`${e.slice(0,22)}…`:e)}setStatus(e,t){let n=t===void 0?e:t,r=t===void 0?void 0:e,i=document.getElementById(`status-message`);i&&(i.textContent=n),this.syncStatusVisibility(n,r)}resetRollingWindow(){this.rollingSamples=[],this.lastTextUpdateMs=0,this.pendingUpdateTimer!==void 0&&(window.clearTimeout(this.pendingUpdateTimer),this.pendingUpdateTimer=void 0)}recordDual(e,t){if(!Number.isFinite(e)||e<0||!Number.isFinite(t)||t<0)return this.lastDisplayedAvg;let n=S();n.seriesASum+=e,n.seriesACount+=1,n.seriesBSum+=t,n.seriesBCount+=1;let r=e+t;this.rollingSamples.push(r),this.rollingSamples.length>this.rollingWindowSize&&this.rollingSamples.shift(),n.history.push({time:e,timeB:t}),n.history.length>this.maxHistorySize&&n.history.shift();let i=this.computeRollingAverage(),a=performance.now();if(this.rollingSamples.length===1||a-this.lastTextUpdateMs>=this.textUpdateIntervalMs)this.applyTextUpdate(i),this.lastTextUpdateMs=a;else if(this.pendingUpdateTimer===void 0){let e=this.textUpdateIntervalMs-(a-this.lastTextUpdateMs);this.pendingUpdateTimer=window.setTimeout(()=>{this.pendingUpdateTimer=void 0,this.applyTextUpdate(this.computeRollingAverage()),this.lastTextUpdateMs=performance.now()},Math.max(16,e))}return!this.canvas||!this.canvas.isConnected?this.mount():(this.drawGraph(),this.updateDelegateSummaries()),this.lastDisplayedAvg}recordSingle(e){if(!Number.isFinite(e)||e<0)return this.lastDisplayedAvg;let t=S();t.seriesASum+=e,t.seriesACount+=1,this.rollingSamples.push(e),this.rollingSamples.length>this.rollingWindowSize&&this.rollingSamples.shift(),t.history.push({time:e}),t.history.length>this.maxHistorySize&&t.history.shift();let n=this.computeRollingAverage(),r=performance.now();if(this.rollingSamples.length===1||r-this.lastTextUpdateMs>=this.textUpdateIntervalMs)this.applyTextUpdate(n),this.lastTextUpdateMs=r;else if(this.pendingUpdateTimer===void 0){let e=this.textUpdateIntervalMs-(r-this.lastTextUpdateMs);this.pendingUpdateTimer=window.setTimeout(()=>{this.pendingUpdateTimer=void 0,this.applyTextUpdate(this.computeRollingAverage()),this.lastTextUpdateMs=performance.now()},Math.max(16,e))}return!this.canvas||!this.canvas.isConnected?this.mount():(this.drawGraph(),this.updateDelegateSummaries()),this.lastDisplayedAvg}record(e,t=`GPU`){if(this.mode===`dual`&&typeof t==`number`)return this.recordDual(e,t);if(this.mode===`single`)return this.recordSingle(e);let n=t===`CPU`||t===`GPU`?t:`GPU`;if(!Number.isFinite(e)||e<0)return this.lastDisplayedAvg;let r=S();r.history.length>0&&r.history[r.history.length-1].delegate!==n&&(this.rollingSamples=[],this.lastTextUpdateMs=0),this.rollingSamples.push(e),this.rollingSamples.length>this.rollingWindowSize&&this.rollingSamples.shift(),n===`GPU`?(r.gpuSum+=e,r.gpuCount+=1):(r.cpuSum+=e,r.cpuCount+=1),r.history.push({time:e,delegate:n}),r.history.length>this.maxHistorySize&&r.history.shift();let i=this.computeRollingAverage(),a=performance.now();if(this.rollingSamples.length===1||a-this.lastTextUpdateMs>=this.textUpdateIntervalMs)this.applyTextUpdate(i),this.lastTextUpdateMs=a;else if(this.pendingUpdateTimer===void 0){let e=this.textUpdateIntervalMs-(a-this.lastTextUpdateMs);this.pendingUpdateTimer=window.setTimeout(()=>{this.pendingUpdateTimer=void 0,this.applyTextUpdate(this.computeRollingAverage()),this.lastTextUpdateMs=performance.now()},Math.max(16,e))}return!this.canvas||!this.canvas.isConnected?this.mount():(this.drawGraph(),this.updateDelegateSummaries()),this.lastDisplayedAvg}cleanup(){this.pendingUpdateTimer!==void 0&&(window.clearTimeout(this.pendingUpdateTimer),this.pendingUpdateTimer=void 0)}computeRollingAverage(){return this.rollingSamples.length===0?0:this.rollingSamples.reduce((e,t)=>e+t,0)/this.rollingSamples.length}applyTextUpdate(e){this.lastDisplayedAvg=e;let t=document.getElementById(`status-message`);if(t&&t.classList.contains(`status-error`)&&(t.classList.remove(`status-error`),t.classList.add(`sr-only-status`)),this.valueBadgeEl&&this.valueBadgeEl.isConnected||(this.valueBadgeEl=document.getElementById(`inference-time-value`)),this.valueBadgeEl)this.valueBadgeEl.classList.remove(`error`),this.valueBadgeEl.textContent=`${e.toFixed(2)} ms`;else{let t=document.getElementById(`inference-time`);t&&(t.innerText=`推理耗时：${e.toFixed(2)} 毫秒`)}}updateDelegateSummaries(){let e=S();if(this.mode===`dual`){if(this.seriesAAvgEl){if(e.seriesACount>0){let t=e.seriesASum/e.seriesACount;this.seriesAAvgEl.textContent=`${t.toFixed(1)} ms`}else this.seriesAAvgEl.textContent=`--`}if(this.seriesBAvgEl){if(e.seriesBCount>0){let t=e.seriesBSum/e.seriesBCount;this.seriesBAvgEl.textContent=`${t.toFixed(1)} ms`}else this.seriesBAvgEl.textContent=`--`}}else if(this.mode===`single`){if(this.seriesAAvgEl){if(e.seriesACount>0){let t=e.seriesASum/e.seriesACount;this.seriesAAvgEl.textContent=`${t.toFixed(1)} ms`}else this.seriesAAvgEl.textContent=`--`}}else{if(this.gpuAvgEl){if(e.gpuCount>0){let t=e.gpuSum/e.gpuCount;this.gpuAvgEl.textContent=`${t.toFixed(1)} ms`}else this.gpuAvgEl.textContent=`--`}if(this.cpuAvgEl){if(e.cpuCount>0){let t=e.cpuSum/e.cpuCount;this.cpuAvgEl.textContent=`${t.toFixed(1)} ms`}else this.cpuAvgEl.textContent=`--`}}}drawGraph(){if(!this.canvas)return;let e=this.canvas.getContext(`2d`);if(!e)return;let t=S().history,n=window.devicePixelRatio||1,r=this.canvas.clientWidth||248,i=this.canvas.clientHeight||64;(this.canvas.width!==Math.round(r*n)||this.canvas.height!==Math.round(i*n))&&(this.canvas.width=Math.round(r*n),this.canvas.height=Math.round(i*n)),e.save(),e.scale(n,n),e.clearRect(0,0,r,i);let a=Math.max(10,r-40-8),o=Math.max(10,i-8-8);e.strokeStyle=`#e2e8f0`,e.lineWidth=1,e.setLineDash([2,2]);for(let t of[0,.5,1]){let n=8+o*t;e.beginPath(),e.moveTo(40,n),e.lineTo(40+a,n),e.stroke()}if(e.setLineDash([]),t.length===0){e.fillStyle=`#94a3b8`,e.font=`11px "Google Sans", "Roboto", sans-serif`,e.textAlign=`center`,e.textBaseline=`middle`,e.fillText(`暂无数据`,r/2,i/2),e.restore();return}let s=Math.max(...t.map(e=>e.timeB===void 0?e.time:Math.max(e.time,e.timeB)),5)*1.2;e.fillStyle=`#64748b`,e.font=`9px "Roboto Mono", monospace`,e.textAlign=`right`,e.textBaseline=`middle`,e.fillText((e=>e>=1e3?`${(e/1e3).toFixed(1)}s`:`${Math.round(e)}ms`)(s),35,10),e.fillText(`0ms`,35,8+o-1);let c=e=>{let t=Math.max(0,Math.min(s,e));return 8+o-t/s*o},l=t.length,u=8+o,d=e=>l===1?40+a/2:40+e/(l-1)*a;if(this.mode===`dual`){if(l===1){let n=t[0],r=c(n.time);if(e.fillStyle=v,e.fillRect(40,r,a,u-r),e.strokeStyle=_,e.lineWidth=2,e.beginPath(),e.moveTo(40,r),e.lineTo(40+a,r),e.stroke(),n.timeB!==void 0){let t=c(n.timeB);e.fillStyle=b,e.fillRect(40,t,a,u-t),e.strokeStyle=y,e.lineWidth=2,e.beginPath(),e.moveTo(40,t),e.lineTo(40+a,t),e.stroke()}e.restore();return}let n=t.map((e,t)=>({x:d(t),y:c(e.time)}));e.fillStyle=v,e.beginPath(),e.moveTo(n[0].x,u),n.forEach(t=>e.lineTo(t.x,t.y)),e.lineTo(n[n.length-1].x,u),e.closePath(),e.fill(),e.strokeStyle=_,e.lineWidth=2,e.lineJoin=`round`,e.lineCap=`round`,e.beginPath(),n.forEach((t,n)=>n===0?e.moveTo(t.x,t.y):e.lineTo(t.x,t.y)),e.stroke();let r=t.map((e,t)=>({x:d(t),y:c(e.timeB??0)}));e.fillStyle=b,e.beginPath(),e.moveTo(r[0].x,u),r.forEach(t=>e.lineTo(t.x,t.y)),e.lineTo(r[r.length-1].x,u),e.closePath(),e.fill(),e.strokeStyle=y,e.lineWidth=2,e.lineJoin=`round`,e.lineCap=`round`,e.beginPath(),r.forEach((t,n)=>n===0?e.moveTo(t.x,t.y):e.lineTo(t.x,t.y)),e.stroke(),l<=25&&(n.forEach(t=>{e.fillStyle=_,e.beginPath(),e.arc(t.x,t.y,2.5,0,Math.PI*2),e.fill()}),r.forEach(t=>{e.fillStyle=y,e.beginPath(),e.arc(t.x,t.y,2.5,0,Math.PI*2),e.fill()})),e.restore();return}if(this.mode===`single`){if(l===1){let n=t[0],r=c(n.time);e.fillStyle=v,e.fillRect(40,r,a,u-r),e.strokeStyle=_,e.lineWidth=2,e.beginPath(),e.moveTo(40,r),e.lineTo(40+a,r),e.stroke(),e.fillStyle=_,e.beginPath(),e.arc(40+a/2,r,3,0,Math.PI*2),e.fill(),e.restore();return}let n=t.map((e,t)=>({x:d(t),y:c(e.time)}));e.fillStyle=v,e.beginPath(),e.moveTo(n[0].x,u),n.forEach(t=>e.lineTo(t.x,t.y)),e.lineTo(n[n.length-1].x,u),e.closePath(),e.fill(),e.strokeStyle=_,e.lineWidth=2,e.lineJoin=`round`,e.lineCap=`round`,e.beginPath(),n.forEach((t,n)=>n===0?e.moveTo(t.x,t.y):e.lineTo(t.x,t.y)),e.stroke(),l<=25&&n.forEach(t=>{e.fillStyle=_,e.beginPath(),e.arc(t.x,t.y,2.5,0,Math.PI*2),e.fill()}),e.restore();return}if(l===1){let n=t[0],r=c(n.time),i=n.delegate===`GPU`?_:y;e.fillStyle=n.delegate===`GPU`?v:b,e.fillRect(40,r,a,u-r),e.strokeStyle=i,e.lineWidth=2,e.beginPath(),e.moveTo(40,r),e.lineTo(40+a,r),e.stroke(),e.fillStyle=i,e.beginPath(),e.arc(40+a/2,r,3,0,Math.PI*2),e.fill(),e.restore();return}let f=[{delegate:t[0].delegate??`GPU`,points:[{x:d(0),y:c(t[0].time)}]}],p=[];for(let e=1;e<l;e++){let n=t[e-1],r=t[e],i=d(e-1),a=c(n.time),o=d(e),s=c(r.time),l=n.delegate??`GPU`,u=r.delegate??`GPU`;if(u===l)f[f.length-1].points.push({x:o,y:s});else{let e=(i+o)/2,t=(a+s)/2;f[f.length-1].points.push({x:e,y:t}),p.push(e),f.push({delegate:u,points:[{x:e,y:t},{x:o,y:s}]})}}for(let t of f){if(t.points.length<2)continue;let n=t.delegate===`GPU`?_:y;e.fillStyle=t.delegate===`GPU`?v:b,e.beginPath(),e.moveTo(t.points[0].x,u);for(let n of t.points)e.lineTo(n.x,n.y);e.lineTo(t.points[t.points.length-1].x,u),e.closePath(),e.fill(),e.strokeStyle=n,e.lineWidth=2,e.lineJoin=`round`,e.lineCap=`round`,e.beginPath(),t.points.forEach((t,n)=>{n===0?e.moveTo(t.x,t.y):e.lineTo(t.x,t.y)}),e.stroke()}for(let t of p)e.save(),e.strokeStyle=`#94a3b8`,e.lineWidth=1,e.setLineDash([3,3]),e.beginPath(),e.moveTo(t,8),e.lineTo(t,u),e.stroke(),e.restore();if(l<=15)for(let n=0;n<l;n++){let r=d(n),i=c(t[n].time);e.fillStyle=(t[n].delegate??`GPU`)===`GPU`?_:y,e.beginPath(),e.arc(r,i,2.5,0,Math.PI*2),e.fill()}e.restore()}},w=100;function T(){return typeof navigator<`u`&&navigator.webdriver===!0}function E(e,t){if(!T())return;let n=window.__mpTestResults??={seq:0,results:{},history:{}};n.seq+=1;let r={seq:n.seq,timestampMs:Date.now(),task:e};try{r.payload=t()}catch(e){r.error=e instanceof Error?e.message:String(e)}n.results[e]=r;let i=n.history[e]??=[];i.push(r),i.length>w&&i.shift()}var D=class{options;container;worker;currentModel;models={};customModelFile;modelSelector;currentDelegate=`GPU`;inferenceTimer=new C;initQueue=[];isWorkerReady=!1;modelRequested=!1;constructor(e){this.options=e,this.container=e.container,this.currentModel=e.defaultModelName,this.models[e.defaultModelName]=e.defaultModelUrl,e.models&&Object.assign(this.models,e.models),e.defaultDelegate&&(this.currentDelegate=e.defaultDelegate)}async initialize(){this.container.innerHTML=this.options.template,this.initWorker(),this.setupUI(),this.onInitializeUI(),this.setupDelegateSelect(),this.modelSelector&&!this.modelSelector.isAutoLoad(this.currentModel)?this.updateStatus(`模型未加载`):await this.initializeTask()}initWorker(){this.worker||=this.options.workerFactory(),this.worker&&(this.worker.onmessage=e=>{e.data?.type===`INIT_DONE`&&(this.loadedModel=e.data.modelName??this.initQueue[0]??this.currentModel,this.loadedDelegate=e.data.delegate??this.currentDelegate),this.handleWorkerMessage(e)})}loadedModel;loadedDelegate;hadDelegateFallback=!1;handleWorkerMessage(e){let{type:t}=e.data;switch(t){case`LOAD_PROGRESS`:this.handleLoadProgress(e.data);break;case`INIT_DONE`:this.handleInitDone(e.data);break;case`MODEL_CACHED`:this.modelSelector?.refreshCacheState();break;case`DELEGATE_FALLBACK`:let{reason:t,advice:n}=e.data,r=n?`${t}（${n}）`:`GPU 不可用。`;console.warn(`Worker fell back to CPU delegate: ${r}`),this.currentDelegate=`CPU`,this.hadDelegateFallback=!0;let i=document.getElementById(`delegate-select`);i&&(i.value=`CPU`),this.renderFallbackWarning(r);break;case`ERROR`:case`DETECT_ERROR`:case`CLASSIFY_ERROR`:this.initQueue.length>0&&this.initQueue.shift(),console.error(`Worker error:`,e.data.error),this.modelSelector?.hideProgress(),this.modelSelector?.setBusy(!1),this.setLoadingOverlay(null),this.updateStatus(`错误：${e.data.error}`)}}handleLoadProgress(e){let{progress:t,loaded:n,total:r}=e;t===void 0?n!==void 0&&r!==void 0&&(this.modelSelector?.showProgress(n,r),r>0&&n>=r&&setTimeout(()=>this.modelSelector?.hideProgress(),500)):(this.modelSelector?.showProgress(t*100,100),t>=1&&setTimeout(()=>this.modelSelector?.hideProgress(),500))}handleInitDone(e){let t=e?.modelName;t===void 0&&(t=this.initQueue.length>0?this.initQueue[0]:this.currentModel),this.initQueue.length>0&&this.initQueue.shift(),t===this.currentModel&&(this.modelSelector?.hideProgress(),this.modelSelector?.setBusy(!1),this.modelSelector?.setLoaded(t===`custom`?null:t),this.setLoadingOverlay(null),this.isWorkerReady=!0,this.hadDelegateFallback?(this.updateStatus(`GPU 不可用，已切换到 CPU（就绪）。`),this.hadDelegateFallback=!1):this.updateStatus(`就绪`))}setupDelegateSelect(){let e=document.getElementById(`delegate-select`);e&&(e.addEventListener(`change`,async()=>{this.currentDelegate=e.value,this.modelRequested&&await this.initializeTask()}),e.value=this.currentDelegate)}setupUI(){this.modelSelector=new g(`model-selector-container`,Object.keys(this.models).map(e=>({label:e,value:e,isDefault:e===this.options.defaultModelName})),async e=>{e.type===`standard`?(this.currentModel=e.value,this.customModelFile=void 0):e.type===`custom`&&(this.customModelFile=e.file,this.currentModel=`custom`),await this.initializeTask()},this.getModelSelectorConfig()),this.modelSelector.onPhaseChange=e=>{e&&document.querySelector(`.viewport.loading-model`)&&(this.setLoadingOverlay(e),this.updateStatus(d(e)))},this.inferenceTimer.mount()}getModelSelectorConfig(){return{resolveUrl:e=>this.resolveModelUrl(e)}}resolveModelUrl(e){let t=this.models[e];if(!t)return;if(t.startsWith(`http`))return t;let n=new URL(`./`,window.location.href).href;return new URL(t,n).href}setLoadingOverlay(e){let t=document.querySelector(`.viewport`);t&&(t.classList.toggle(`loading-model`,e!==null),e&&(t.dataset.loadingText=d(e)))}async initializeTask(){this.modelRequested=!0,this.isWorkerReady=!1,this.inferenceTimer.resetRollingWindow(),this.modelSelector?.setBusy(!0);let e=this.modelSelector?.getPhase()??`initializing`;this.setLoadingOverlay(e),this.updateStatus(d(e));let t=new URL(`./`,window.location.href).href,n=this.currentModel===`custom`?this.customModelFile:void 0,r=n?void 0:this.resolveModelUrl(this.currentModel),i=this.getWorkerInitParamsInner();this.initQueue.push(this.currentModel),this.worker?.postMessage({type:`INIT`,modelName:this.currentModel,modelAssetPath:r,modelFile:n,delegate:this.currentDelegate,baseUrl:t,...i})}getWorkerInitParamsInner(){return this.getWorkerInitParams()}updateStatus(e){let t=document.getElementById(`status-message`);t&&(t.innerText=e),this.inferenceTimer.syncStatusVisibility(e)}updateInferenceTime(e){return this.inferenceTimer.record(e,this.currentDelegate)}publishTestResult(e,t){E(e,()=>({model:this.loadedModel??null,delegate:this.loadedDelegate??null,...t()}))}cleanup(){this.inferenceTimer.cleanup(),this.worker&&=(this.worker.postMessage({type:`CLEANUP`}),this.worker.terminate(),void 0),this.isWorkerReady=!1}renderFallbackWarning(e){let t=document.getElementById(`fallback-warning`);if(!t){let e=document.querySelector(`.status-group`);e&&(t=document.createElement(`div`),t.id=`fallback-warning`,t.className=`fallback-warning`,t.style.cssText=`color: #d97706; font-size: 0.85rem; margin-top: 4px; font-weight: 500;`,e.appendChild(t))}t&&(t.innerText=`⚠️ GPU 不可用（${e}），已切换到 CPU 运行。`)}onInitializeUI(){}},O=[{id:`kokoro_82m`,name:`Kokoro-82M（GPU）`,url:`https://modelscope.cn/models/litert-community/Kokoro-82M`,fileName:`kokoro_int8_gpu_fp16.litertlm`,description:`9 种语言，含普通话`},{id:`kokoro_82m_cpu`,name:`Kokoro-82M（CPU）`,url:`https://modelscope.cn/models/litert-community/Kokoro-82M`,fileName:`kokoro_int8_fp16.litertlm`,description:`无 GPU 时推荐，含普通话`}];function k(e){return n(e.url,e.fileName)}var A=`<div class="task-container">
-  <!-- 左侧控制区 -->
-  <div class="controls-panel">
-    <div class="section-title">模型选择</div>
-    <div id="model-selector-container"></div>
-
-    <div class="divider"></div>
-
-    <div class="section-title">设置</div>
-
-    <div class="control-group">
-      <div class="control-label">
-        <span>发音人</span>
-      </div>
-      <div class="select-wrapper">
-        <select id="voice-select" disabled>
-          <option value="">请先加载模型</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="control-group">
-      <div class="control-label">
-        <span>语速</span>
-        <span id="speaking-rate-value" class="value-badge">1.0</span>
-      </div>
-      <input type="range" id="speaking-rate" min="0.5" max="2" step="0.1" value="1" class="range-slider" />
-      <div class="control-hint">重新加载模型后生效。</div>
-    </div>
-
-    <div class="control-group">
-      <div class="control-label">
-        <span>运行设备</span>
-      </div>
-      <div class="select-wrapper">
-        <select id="delegate-select">
-          <option value="GPU" selected>GPU</option>
-          <option value="CPU">CPU</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="status-group">
-      <div id="status-message" class="status-message">就绪</div>
-      <div id="inference-time" class="inference-time">推理耗时：- 毫秒</div>
-    </div>
-  </div>
-
-  <!-- 右侧输出区 -->
-  <div class="output-panel">
-    <div class="output-header">
-      <h2>中文语音合成</h2>
-    </div>
-
-    <div class="viewport tts-viewport">
-      <div class="tts-card">
-        <div class="preset-bar" id="tts-samples">
-          <span class="preset-bar-label">示例</span>
-          <button class="sample-chip active" data-sample="welcome">欢迎语</button>
-          <button class="sample-chip" data-sample="story">小故事</button>
-          <button class="sample-chip" data-sample="numbers">数字与日期</button>
-          <button class="sample-chip" data-sample="article">多段文章</button>
-        </div>
-
-        <textarea
-          id="tts-text-input"
-          class="slot-textarea"
-          rows="5"
-          placeholder="输入或粘贴要朗读的文字……"
-        ></textarea>
-
-        <div class="tts-actions">
-          <button
-            id="tts-stream-btn"
-            class="action-button"
-            title="边合成边播放：首个片段生成后立即播放，其余文本继续在后台合成。"
-            disabled
-          >
-            <span class="material-icons">graphic_eq</span> 流式播放
-          </button>
-          <button
-            id="tts-speak-btn"
-            class="action-button secondary"
-            title="先把整段文字合成为一个音频再播放。想更快听到声音请用「流式播放」。"
-            disabled
-          >
-            <span class="material-icons">record_voice_over</span> 合成全部
-          </button>
-          <button id="tts-stop-btn" class="action-button secondary" disabled>
-            <span class="material-icons">stop</span> 停止
-          </button>
-          <button id="tts-download-btn" class="action-button secondary" disabled>
-            <span class="material-icons">download</span> 导出 WAV
-          </button>
-        </div>
-      </div>
-
-      <div id="tts-output" class="tts-output">
-        <div class="audio-visualizer-container">
-          <canvas id="tts-waveform"></canvas>
-        </div>
-
-        <div class="tts-metrics">
-          <div class="tts-metric">
-            <span class="tts-metric-label">首字延迟</span>
-            <span id="tts-metric-first" class="tts-metric-value">-</span>
-          </div>
-          <div class="tts-metric">
-            <span class="tts-metric-label">合成耗时</span>
-            <span id="tts-metric-total" class="tts-metric-value">-</span>
-          </div>
-          <div class="tts-metric">
-            <span class="tts-metric-label">音频时长</span>
-            <span id="tts-metric-audio" class="tts-metric-value">-</span>
-          </div>
-          <div class="tts-metric">
-            <span class="tts-metric-label">实时率</span>
-            <span id="tts-metric-rtf" class="tts-metric-value">-</span>
-          </div>
-        </div>
-
-        <div class="tts-reader-bar">
-          <div class="tts-reader-hint" title="点击任意句子即可从该句开始朗读">
-            <span class="material-icons" style="font-size: 16px; flex-shrink: 0">touch_app</span>
-            <span class="tts-reader-hint-text">点击任意句子即可从该句开始朗读</span>
-          </div>
-          <div class="tts-reader-controls">
-            <span id="tts-sentence-badge" class="tts-sentence-badge"></span>
-            <button id="tts-prev-sent-btn" type="button" class="tts-nav-btn" title="上一句" disabled>
-              <span class="material-icons" style="font-size: 16px">skip_previous</span>
-              <span>上一句</span>
-            </button>
-            <button id="tts-next-sent-btn" type="button" class="tts-nav-btn" title="下一句" disabled>
-              <span>下一句</span>
-              <span class="material-icons" style="font-size: 16px">skip_next</span>
-            </button>
-          </div>
-        </div>
-
-        <div id="tts-transcript" class="tts-transcript" aria-live="polite"></div>
-      </div>
-    </div>
-  </div>
-
-  <style>
-    .tts-viewport {
-      justify-content: flex-start !important;
-      padding: 20px;
-      gap: 16px;
-    }
-
-    .tts-card,
-    .tts-output {
-      width: 100%;
-      max-width: 720px;
-    }
-
-    .tts-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 12px;
-    }
-
-    .tts-actions .action-button {
-      margin-top: 0;
-    }
-
-    .tts-output .audio-visualizer-container {
-      margin-top: 0;
-    }
-
-    #tts-waveform {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-
-    .tts-metrics {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 8px;
-      margin-top: 12px;
-    }
-
-    .tts-metric {
-      display: flex;
-      flex-direction: column;
-      padding: 8px 12px;
-      background: #f8fafc;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-    }
-
-    .tts-metric-label {
-      font-size: 0.72rem;
-      font-weight: 600;
-      color: var(--text-secondary);
-    }
-
-    .tts-metric-value {
-      font-family: 'Roboto Mono', monospace;
-      font-size: 0.95rem;
-      color: var(--text-main);
-      margin-top: 2px;
-    }
-
-    .tts-reader-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: nowrap;
-      gap: 8px;
-      margin-top: 14px;
-      padding: 6px 10px;
-      background: #f8fafc;
-      border: 1px solid var(--border-color);
-      border-bottom: none;
-      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-    }
-
-    .tts-reader-hint {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      min-width: 0;
-      flex: 1 1 auto;
-      font-size: 0.78rem;
-      color: var(--text-secondary);
-    }
-
-    .tts-reader-hint-text {
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .tts-reader-controls {
-      display: inline-flex;
-      align-items: center;
-      flex-shrink: 0;
-      gap: 6px;
-    }
-
-    .tts-sentence-badge {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--primary, #00796b);
-      padding: 2px 8px;
-      background: rgba(0, 151, 167, 0.1);
-      border-radius: 999px;
-      white-space: nowrap;
-    }
-
-    .tts-sentence-badge:empty {
-      display: none;
-    }
-
-    .tts-nav-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 2px;
-      padding: 3px 8px;
-      font-size: 0.76rem;
-      font-weight: 500;
-      color: var(--text-main);
-      background: #ffffff;
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background-color 0.12s ease, border-color 0.12s ease;
-    }
-
-    .tts-nav-btn:hover:not(:disabled) {
-      background: #f1f5f9;
-      border-color: var(--primary, #00796b);
-    }
-
-    .tts-nav-btn:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-    }
-
-    .tts-transcript {
-      margin-top: 0;
-      padding: 14px 16px;
-      min-height: 64px;
-      border: 1px solid var(--border-color);
-      border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-      background: #ffffff;
-      font-size: 1rem;
-      line-height: 1.75;
-      color: var(--text-secondary);
-    }
-
-    .tts-transcript:empty::before {
-      content: '朗读时，每个字词会在此处高亮显示。';
-      color: #9aa0a6;
-      font-style: italic;
-    }
-
-    .tts-paragraph {
-      margin: 0 0 10px 0;
-    }
-
-    .tts-paragraph:last-child {
-      margin-bottom: 0;
-    }
-
-    .tts-sentence {
-      border-radius: 3px;
-      padding: 1px 0;
-      cursor: pointer;
-      transition: background-color 0.12s ease, color 0.12s ease;
-    }
-
-    .tts-sentence:hover {
-      background: rgba(0, 151, 167, 0.08);
-      color: var(--text-main);
-    }
-
-    .tts-sentence.active {
-      background: rgba(0, 151, 167, 0.11);
-      color: var(--text-main);
-    }
-
-    .tts-sentence.synthesizing {
-      background: rgba(245, 158, 11, 0.14);
-      color: var(--text-main);
-    }
-
-    .tts-sentence.spoken {
-      color: var(--text-main);
-    }
-
-    .tts-transcript .tts-word {
-      border-radius: 3px;
-      padding: 1px 0;
-      transition: background-color 0.08s ease, box-shadow 0.08s ease;
-    }
-
-    .tts-transcript .tts-word.spoken {
-      color: var(--text-main);
-    }
-
-    .tts-transcript .tts-word.active {
-      background: var(--primary-soft, #b2dfdb);
-      box-shadow: 0 0 0 2px var(--primary-soft, #b2dfdb);
-      color: #004d40;
-    }
-
-    .control-hint {
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-      margin-top: 4px;
-    }
-
-    @media (max-width: 600px) {
-      .tts-metrics {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-  </style>
-</div>
+      `,e.appendChild(o)}this.canvas=o.querySelector(`#inference-history-canvas`),this.gpuAvgEl=o.querySelector(`#inference-gpu-avg`),this.cpuAvgEl=o.querySelector(`#inference-cpu-avg`),this.seriesAAvgEl=o.querySelector(`#inference-series-a-avg`),this.seriesBAvgEl=o.querySelector(`#inference-series-b-avg`),this.drawGraph(),this.updateDelegateSummaries()}syncStatusVisibility(e,t){let n=document.getElementById(`status-message`);if(this.valueBadgeEl&&this.valueBadgeEl.isConnected||(this.valueBadgeEl=document.getElementById(`inference-time-value`)),!this.valueBadgeEl)return;let r=t===`error`||/^error\b/i.test(e.trim())||e.toLowerCase().includes(`failed`),i=t===`idle`||t===`ready`||e.startsWith(`Done`)||e===`就绪`||e===`Ready`||e===`Webcam running...`||/ready/i.test(e);r?(n&&(n.classList.remove(`sr-only-status`),n.classList.add(`status-error`)),this.valueBadgeEl.classList.add(`error`),this.valueBadgeEl.textContent=`错误`):(n&&(n.classList.remove(`status-error`),n.classList.add(`sr-only-status`)),this.valueBadgeEl.classList.remove(`error`),i?this.lastDisplayedAvg>0?this.valueBadgeEl.textContent=`${this.lastDisplayedAvg.toFixed(2)} ms`:this.valueBadgeEl.textContent=`- ms`:this.valueBadgeEl.textContent=e.length>24?`${e.slice(0,22)}…`:e)}setStatus(e,t){let n=t===void 0?e:t,r=t===void 0?void 0:e,i=document.getElementById(`status-message`);i&&(i.textContent=n),this.syncStatusVisibility(n,r)}resetRollingWindow(){this.rollingSamples=[],this.lastTextUpdateMs=0,this.pendingUpdateTimer!==void 0&&(window.clearTimeout(this.pendingUpdateTimer),this.pendingUpdateTimer=void 0)}recordDual(e,t){if(!Number.isFinite(e)||e<0||!Number.isFinite(t)||t<0)return this.lastDisplayedAvg;let n=S();n.seriesASum+=e,n.seriesACount+=1,n.seriesBSum+=t,n.seriesBCount+=1;let r=e+t;this.rollingSamples.push(r),this.rollingSamples.length>this.rollingWindowSize&&this.rollingSamples.shift(),n.history.push({time:e,timeB:t}),n.history.length>this.maxHistorySize&&n.history.shift();let i=this.computeRollingAverage(),a=performance.now();if(this.rollingSamples.length===1||a-this.lastTextUpdateMs>=this.textUpdateIntervalMs)this.applyTextUpdate(i),this.lastTextUpdateMs=a;else if(this.pendingUpdateTimer===void 0){let e=this.textUpdateIntervalMs-(a-this.lastTextUpdateMs);this.pendingUpdateTimer=window.setTimeout(()=>{this.pendingUpdateTimer=void 0,this.applyTextUpdate(this.computeRollingAverage()),this.lastTextUpdateMs=performance.now()},Math.max(16,e))}return!this.canvas||!this.canvas.isConnected?this.mount():(this.drawGraph(),this.updateDelegateSummaries()),this.lastDisplayedAvg}recordSingle(e){if(!Number.isFinite(e)||e<0)return this.lastDisplayedAvg;let t=S();t.seriesASum+=e,t.seriesACount+=1,this.rollingSamples.push(e),this.rollingSamples.length>this.rollingWindowSize&&this.rollingSamples.shift(),t.history.push({time:e}),t.history.length>this.maxHistorySize&&t.history.shift();let n=this.computeRollingAverage(),r=performance.now();if(this.rollingSamples.length===1||r-this.lastTextUpdateMs>=this.textUpdateIntervalMs)this.applyTextUpdate(n),this.lastTextUpdateMs=r;else if(this.pendingUpdateTimer===void 0){let e=this.textUpdateIntervalMs-(r-this.lastTextUpdateMs);this.pendingUpdateTimer=window.setTimeout(()=>{this.pendingUpdateTimer=void 0,this.applyTextUpdate(this.computeRollingAverage()),this.lastTextUpdateMs=performance.now()},Math.max(16,e))}return!this.canvas||!this.canvas.isConnected?this.mount():(this.drawGraph(),this.updateDelegateSummaries()),this.lastDisplayedAvg}record(e,t=`GPU`){if(this.mode===`dual`&&typeof t==`number`)return this.recordDual(e,t);if(this.mode===`single`)return this.recordSingle(e);let n=t===`CPU`||t===`GPU`?t:`GPU`;if(!Number.isFinite(e)||e<0)return this.lastDisplayedAvg;let r=S();r.history.length>0&&r.history[r.history.length-1].delegate!==n&&(this.rollingSamples=[],this.lastTextUpdateMs=0),this.rollingSamples.push(e),this.rollingSamples.length>this.rollingWindowSize&&this.rollingSamples.shift(),n===`GPU`?(r.gpuSum+=e,r.gpuCount+=1):(r.cpuSum+=e,r.cpuCount+=1),r.history.push({time:e,delegate:n}),r.history.length>this.maxHistorySize&&r.history.shift();let i=this.computeRollingAverage(),a=performance.now();if(this.rollingSamples.length===1||a-this.lastTextUpdateMs>=this.textUpdateIntervalMs)this.applyTextUpdate(i),this.lastTextUpdateMs=a;else if(this.pendingUpdateTimer===void 0){let e=this.textUpdateIntervalMs-(a-this.lastTextUpdateMs);this.pendingUpdateTimer=window.setTimeout(()=>{this.pendingUpdateTimer=void 0,this.applyTextUpdate(this.computeRollingAverage()),this.lastTextUpdateMs=performance.now()},Math.max(16,e))}return!this.canvas||!this.canvas.isConnected?this.mount():(this.drawGraph(),this.updateDelegateSummaries()),this.lastDisplayedAvg}cleanup(){this.pendingUpdateTimer!==void 0&&(window.clearTimeout(this.pendingUpdateTimer),this.pendingUpdateTimer=void 0)}computeRollingAverage(){return this.rollingSamples.length===0?0:this.rollingSamples.reduce((e,t)=>e+t,0)/this.rollingSamples.length}applyTextUpdate(e){this.lastDisplayedAvg=e;let t=document.getElementById(`status-message`);if(t&&t.classList.contains(`status-error`)&&(t.classList.remove(`status-error`),t.classList.add(`sr-only-status`)),this.valueBadgeEl&&this.valueBadgeEl.isConnected||(this.valueBadgeEl=document.getElementById(`inference-time-value`)),this.valueBadgeEl)this.valueBadgeEl.classList.remove(`error`),this.valueBadgeEl.textContent=`${e.toFixed(2)} ms`;else{let t=document.getElementById(`inference-time`);t&&(t.innerText=`推理耗时：${e.toFixed(2)} 毫秒`)}}updateDelegateSummaries(){let e=S();if(this.mode===`dual`){if(this.seriesAAvgEl){if(e.seriesACount>0){let t=e.seriesASum/e.seriesACount;this.seriesAAvgEl.textContent=`${t.toFixed(1)} ms`}else this.seriesAAvgEl.textContent=`--`}if(this.seriesBAvgEl){if(e.seriesBCount>0){let t=e.seriesBSum/e.seriesBCount;this.seriesBAvgEl.textContent=`${t.toFixed(1)} ms`}else this.seriesBAvgEl.textContent=`--`}}else if(this.mode===`single`){if(this.seriesAAvgEl){if(e.seriesACount>0){let t=e.seriesASum/e.seriesACount;this.seriesAAvgEl.textContent=`${t.toFixed(1)} ms`}else this.seriesAAvgEl.textContent=`--`}}else{if(this.gpuAvgEl){if(e.gpuCount>0){let t=e.gpuSum/e.gpuCount;this.gpuAvgEl.textContent=`${t.toFixed(1)} ms`}else this.gpuAvgEl.textContent=`--`}if(this.cpuAvgEl){if(e.cpuCount>0){let t=e.cpuSum/e.cpuCount;this.cpuAvgEl.textContent=`${t.toFixed(1)} ms`}else this.cpuAvgEl.textContent=`--`}}}drawGraph(){if(!this.canvas)return;let e=this.canvas.getContext(`2d`);if(!e)return;let t=S().history,n=window.devicePixelRatio||1,r=this.canvas.clientWidth||248,i=this.canvas.clientHeight||64;(this.canvas.width!==Math.round(r*n)||this.canvas.height!==Math.round(i*n))&&(this.canvas.width=Math.round(r*n),this.canvas.height=Math.round(i*n)),e.save(),e.scale(n,n),e.clearRect(0,0,r,i);let a=Math.max(10,r-40-8),o=Math.max(10,i-8-8);e.strokeStyle=`#e2e8f0`,e.lineWidth=1,e.setLineDash([2,2]);for(let t of[0,.5,1]){let n=8+o*t;e.beginPath(),e.moveTo(40,n),e.lineTo(40+a,n),e.stroke()}if(e.setLineDash([]),t.length===0){e.fillStyle=`#94a3b8`,e.font=`11px "Google Sans", "Roboto", sans-serif`,e.textAlign=`center`,e.textBaseline=`middle`,e.fillText(`暂无数据`,r/2,i/2),e.restore();return}let s=Math.max(...t.map(e=>e.timeB===void 0?e.time:Math.max(e.time,e.timeB)),5)*1.2;e.fillStyle=`#64748b`,e.font=`9px "Roboto Mono", monospace`,e.textAlign=`right`,e.textBaseline=`middle`,e.fillText((e=>e>=1e3?`${(e/1e3).toFixed(1)}s`:`${Math.round(e)}ms`)(s),35,10),e.fillText(`0ms`,35,8+o-1);let c=e=>{let t=Math.max(0,Math.min(s,e));return 8+o-t/s*o},l=t.length,u=8+o,d=e=>l===1?40+a/2:40+e/(l-1)*a;if(this.mode===`dual`){if(l===1){let n=t[0],r=c(n.time);if(e.fillStyle=v,e.fillRect(40,r,a,u-r),e.strokeStyle=_,e.lineWidth=2,e.beginPath(),e.moveTo(40,r),e.lineTo(40+a,r),e.stroke(),n.timeB!==void 0){let t=c(n.timeB);e.fillStyle=b,e.fillRect(40,t,a,u-t),e.strokeStyle=y,e.lineWidth=2,e.beginPath(),e.moveTo(40,t),e.lineTo(40+a,t),e.stroke()}e.restore();return}let n=t.map((e,t)=>({x:d(t),y:c(e.time)}));e.fillStyle=v,e.beginPath(),e.moveTo(n[0].x,u),n.forEach(t=>e.lineTo(t.x,t.y)),e.lineTo(n[n.length-1].x,u),e.closePath(),e.fill(),e.strokeStyle=_,e.lineWidth=2,e.lineJoin=`round`,e.lineCap=`round`,e.beginPath(),n.forEach((t,n)=>n===0?e.moveTo(t.x,t.y):e.lineTo(t.x,t.y)),e.stroke();let r=t.map((e,t)=>({x:d(t),y:c(e.timeB??0)}));e.fillStyle=b,e.beginPath(),e.moveTo(r[0].x,u),r.forEach(t=>e.lineTo(t.x,t.y)),e.lineTo(r[r.length-1].x,u),e.closePath(),e.fill(),e.strokeStyle=y,e.lineWidth=2,e.lineJoin=`round`,e.lineCap=`round`,e.beginPath(),r.forEach((t,n)=>n===0?e.moveTo(t.x,t.y):e.lineTo(t.x,t.y)),e.stroke(),l<=25&&(n.forEach(t=>{e.fillStyle=_,e.beginPath(),e.arc(t.x,t.y,2.5,0,Math.PI*2),e.fill()}),r.forEach(t=>{e.fillStyle=y,e.beginPath(),e.arc(t.x,t.y,2.5,0,Math.PI*2),e.fill()})),e.restore();return}if(this.mode===`single`){if(l===1){let n=t[0],r=c(n.time);e.fillStyle=v,e.fillRect(40,r,a,u-r),e.strokeStyle=_,e.lineWidth=2,e.beginPath(),e.moveTo(40,r),e.lineTo(40+a,r),e.stroke(),e.fillStyle=_,e.beginPath(),e.arc(40+a/2,r,3,0,Math.PI*2),e.fill(),e.restore();return}let n=t.map((e,t)=>({x:d(t),y:c(e.time)}));e.fillStyle=v,e.beginPath(),e.moveTo(n[0].x,u),n.forEach(t=>e.lineTo(t.x,t.y)),e.lineTo(n[n.length-1].x,u),e.closePath(),e.fill(),e.strokeStyle=_,e.lineWidth=2,e.lineJoin=`round`,e.lineCap=`round`,e.beginPath(),n.forEach((t,n)=>n===0?e.moveTo(t.x,t.y):e.lineTo(t.x,t.y)),e.stroke(),l<=25&&n.forEach(t=>{e.fillStyle=_,e.beginPath(),e.arc(t.x,t.y,2.5,0,Math.PI*2),e.fill()}),e.restore();return}if(l===1){let n=t[0],r=c(n.time),i=n.delegate===`GPU`?_:y;e.fillStyle=n.delegate===`GPU`?v:b,e.fillRect(40,r,a,u-r),e.strokeStyle=i,e.lineWidth=2,e.beginPath(),e.moveTo(40,r),e.lineTo(40+a,r),e.stroke(),e.fillStyle=i,e.beginPath(),e.arc(40+a/2,r,3,0,Math.PI*2),e.fill(),e.restore();return}let f=[{delegate:t[0].delegate??`GPU`,points:[{x:d(0),y:c(t[0].time)}]}],p=[];for(let e=1;e<l;e++){let n=t[e-1],r=t[e],i=d(e-1),a=c(n.time),o=d(e),s=c(r.time),l=n.delegate??`GPU`,u=r.delegate??`GPU`;if(u===l)f[f.length-1].points.push({x:o,y:s});else{let e=(i+o)/2,t=(a+s)/2;f[f.length-1].points.push({x:e,y:t}),p.push(e),f.push({delegate:u,points:[{x:e,y:t},{x:o,y:s}]})}}for(let t of f){if(t.points.length<2)continue;let n=t.delegate===`GPU`?_:y;e.fillStyle=t.delegate===`GPU`?v:b,e.beginPath(),e.moveTo(t.points[0].x,u);for(let n of t.points)e.lineTo(n.x,n.y);e.lineTo(t.points[t.points.length-1].x,u),e.closePath(),e.fill(),e.strokeStyle=n,e.lineWidth=2,e.lineJoin=`round`,e.lineCap=`round`,e.beginPath(),t.points.forEach((t,n)=>{n===0?e.moveTo(t.x,t.y):e.lineTo(t.x,t.y)}),e.stroke()}for(let t of p)e.save(),e.strokeStyle=`#94a3b8`,e.lineWidth=1,e.setLineDash([3,3]),e.beginPath(),e.moveTo(t,8),e.lineTo(t,u),e.stroke(),e.restore();if(l<=15)for(let n=0;n<l;n++){let r=d(n),i=c(t[n].time);e.fillStyle=(t[n].delegate??`GPU`)===`GPU`?_:y,e.beginPath(),e.arc(r,i,2.5,0,Math.PI*2),e.fill()}e.restore()}},w=100;function T(){return typeof navigator<`u`&&navigator.webdriver===!0}function E(e,t){if(!T())return;let n=window.__mpTestResults??={seq:0,results:{},history:{}};n.seq+=1;let r={seq:n.seq,timestampMs:Date.now(),task:e};try{r.payload=t()}catch(e){r.error=e instanceof Error?e.message:String(e)}n.results[e]=r;let i=n.history[e]??=[];i.push(r),i.length>w&&i.shift()}var D=class{options;container;worker;currentModel;models={};customModelFile;modelSelector;currentDelegate=`GPU`;inferenceTimer=new C;initQueue=[];isWorkerReady=!1;modelRequested=!1;constructor(e){this.options=e,this.container=e.container,this.currentModel=e.defaultModelName,this.models[e.defaultModelName]=e.defaultModelUrl,e.models&&Object.assign(this.models,e.models),e.defaultDelegate&&(this.currentDelegate=e.defaultDelegate)}async initialize(){this.container.innerHTML=this.options.template,this.initWorker(),this.setupUI(),this.onInitializeUI(),this.setupDelegateSelect(),this.modelSelector&&!this.modelSelector.isAutoLoad(this.currentModel)?this.updateStatus(`模型未加载`):await this.initializeTask()}initWorker(){this.worker||=this.options.workerFactory(),this.worker&&(this.worker.onmessage=e=>{e.data?.type===`INIT_DONE`&&(this.loadedModel=e.data.modelName??this.initQueue[0]??this.currentModel,this.loadedDelegate=e.data.delegate??this.currentDelegate),this.handleWorkerMessage(e)})}loadedModel;loadedDelegate;hadDelegateFallback=!1;handleWorkerMessage(e){let{type:t}=e.data;switch(t){case`LOAD_PROGRESS`:this.handleLoadProgress(e.data);break;case`INIT_DONE`:this.handleInitDone(e.data);break;case`MODEL_CACHED`:this.modelSelector?.refreshCacheState();break;case`DELEGATE_FALLBACK`:let{reason:t,advice:n}=e.data,r=n?`${t}（${n}）`:`GPU 不可用。`;console.warn(`Worker fell back to CPU delegate: ${r}`),this.currentDelegate=`CPU`,this.hadDelegateFallback=!0;let i=document.getElementById(`delegate-select`);i&&(i.value=`CPU`),this.renderFallbackWarning(r);break;case`ERROR`:case`DETECT_ERROR`:case`CLASSIFY_ERROR`:this.initQueue.length>0&&this.initQueue.shift(),console.error(`Worker error:`,e.data.error),this.modelSelector?.hideProgress(),this.modelSelector?.setBusy(!1),this.setLoadingOverlay(null),this.updateStatus(`错误：${e.data.error}`)}}handleLoadProgress(e){let{progress:t,loaded:n,total:r}=e;t===void 0?n!==void 0&&r!==void 0&&(this.modelSelector?.showProgress(n,r),r>0&&n>=r&&setTimeout(()=>this.modelSelector?.hideProgress(),500)):(this.modelSelector?.showProgress(t*100,100),t>=1&&setTimeout(()=>this.modelSelector?.hideProgress(),500))}handleInitDone(e){let t=e?.modelName;t===void 0&&(t=this.initQueue.length>0?this.initQueue[0]:this.currentModel),this.initQueue.length>0&&this.initQueue.shift(),t===this.currentModel&&(this.modelSelector?.hideProgress(),this.modelSelector?.setBusy(!1),this.modelSelector?.setLoaded(t===`custom`?null:t),this.setLoadingOverlay(null),this.isWorkerReady=!0,this.hadDelegateFallback?(this.updateStatus(`GPU 不可用，已切换到 CPU（就绪）。`),this.hadDelegateFallback=!1):this.updateStatus(`就绪`))}setupDelegateSelect(){let e=document.getElementById(`delegate-select`);e&&(e.addEventListener(`change`,async()=>{this.currentDelegate=e.value,this.modelRequested&&await this.initializeTask()}),e.value=this.currentDelegate)}setupUI(){this.modelSelector=new g(`model-selector-container`,Object.keys(this.models).map(e=>({label:e,value:e,isDefault:e===this.options.defaultModelName})),async e=>{e.type===`standard`?(this.currentModel=e.value,this.customModelFile=void 0):e.type===`custom`&&(this.customModelFile=e.file,this.currentModel=`custom`),await this.initializeTask()},this.getModelSelectorConfig()),this.modelSelector.onPhaseChange=e=>{e&&document.querySelector(`.viewport.loading-model`)&&(this.setLoadingOverlay(e),this.updateStatus(d(e)))},this.inferenceTimer.mount()}getModelSelectorConfig(){return{resolveUrl:e=>this.resolveModelUrl(e)}}resolveModelUrl(e){let t=this.models[e];if(!t)return;if(t.startsWith(`http`))return t;let n=new URL(`./`,window.location.href).href;return new URL(t,n).href}setLoadingOverlay(e){let t=document.querySelector(`.viewport`);t&&(t.classList.toggle(`loading-model`,e!==null),e&&(t.dataset.loadingText=d(e)))}async initializeTask(){this.modelRequested=!0,this.isWorkerReady=!1,this.inferenceTimer.resetRollingWindow(),this.modelSelector?.setBusy(!0);let e=this.modelSelector?.getPhase()??`initializing`;this.setLoadingOverlay(e),this.updateStatus(d(e));let t=new URL(`./`,window.location.href).href,n=this.currentModel===`custom`?this.customModelFile:void 0,r=n?void 0:this.resolveModelUrl(this.currentModel),i=this.getWorkerInitParamsInner();this.initQueue.push(this.currentModel),this.worker?.postMessage({type:`INIT`,modelName:this.currentModel,modelAssetPath:r,modelFile:n,delegate:this.currentDelegate,baseUrl:t,...i})}getWorkerInitParamsInner(){return this.getWorkerInitParams()}updateStatus(e){let t=document.getElementById(`status-message`);t&&(t.innerText=e),this.inferenceTimer.syncStatusVisibility(e)}updateInferenceTime(e){return this.inferenceTimer.record(e,this.currentDelegate)}publishTestResult(e,t){E(e,()=>({model:this.loadedModel??null,delegate:this.loadedDelegate??null,...t()}))}cleanup(){this.inferenceTimer.cleanup(),this.worker&&=(this.worker.postMessage({type:`CLEANUP`}),this.worker.terminate(),void 0),this.isWorkerReady=!1}renderFallbackWarning(e){let t=document.getElementById(`fallback-warning`);if(!t){let e=document.querySelector(`.status-group`);e&&(t=document.createElement(`div`),t.id=`fallback-warning`,t.className=`fallback-warning`,t.style.cssText=`color: #d97706; font-size: 0.85rem; margin-top: 4px; font-weight: 500;`,e.appendChild(t))}t&&(t.innerText=`⚠️ GPU 不可用（${e}），已切换到 CPU 运行。`)}onInitializeUI(){}},O=[{id:`kokoro_82m`,name:`Kokoro-82M（GPU）`,url:`https://modelscope.cn/models/litert-community/Kokoro-82M`,fileName:`kokoro_int8_gpu_fp16.litertlm`,description:`9 种语言，含普通话`},{id:`kokoro_82m_cpu`,name:`Kokoro-82M（CPU）`,url:`https://modelscope.cn/models/litert-community/Kokoro-82M`,fileName:`kokoro_int8_fp16.litertlm`,description:`无 GPU 时推荐，含普通话`}];function k(e){return n(e.url,e.fileName)}var A=`<div class="task-container">\r
+  <!-- 左侧控制区 -->\r
+  <div class="controls-panel">\r
+    <div class="section-title">模型选择</div>\r
+    <div id="model-selector-container"></div>\r
+\r
+    <div class="divider"></div>\r
+\r
+    <div class="section-title">设置</div>\r
+\r
+    <div class="control-group">\r
+      <div class="control-label">\r
+        <span>发音人</span>\r
+      </div>\r
+      <div class="select-wrapper">\r
+        <select id="voice-select" disabled>\r
+          <option value="">请先加载模型</option>\r
+        </select>\r
+      </div>\r
+    </div>\r
+\r
+    <div class="control-group">\r
+      <div class="control-label">\r
+        <span>语速</span>\r
+        <span id="speaking-rate-value" class="value-badge">1.0</span>\r
+      </div>\r
+      <input type="range" id="speaking-rate" min="0.5" max="2" step="0.1" value="1" class="range-slider" />\r
+      <div class="control-hint">重新加载模型后生效。</div>\r
+    </div>\r
+\r
+    <div class="control-group">\r
+      <div class="control-label">\r
+        <span>运行设备</span>\r
+      </div>\r
+      <div class="select-wrapper">\r
+        <select id="delegate-select">\r
+          <option value="GPU" selected>GPU</option>\r
+          <option value="CPU">CPU</option>\r
+        </select>\r
+      </div>\r
+    </div>\r
+\r
+    <div class="divider"></div>\r
+\r
+    <div class="status-group">\r
+      <div id="status-message" class="status-message">就绪</div>\r
+      <div id="inference-time" class="inference-time">推理耗时：- 毫秒</div>\r
+    </div>\r
+  </div>\r
+\r
+  <!-- 右侧输出区 -->\r
+  <div class="output-panel">\r
+    <div class="output-header">\r
+      <h2>中文语音合成</h2>\r
+    </div>\r
+\r
+    <div class="viewport tts-viewport">\r
+      <div class="tts-card">\r
+        <div class="preset-bar" id="tts-samples">\r
+          <span class="preset-bar-label">示例</span>\r
+          <button class="sample-chip active" data-sample="welcome">欢迎语</button>\r
+          <button class="sample-chip" data-sample="story">小故事</button>\r
+          <button class="sample-chip" data-sample="numbers">数字与日期</button>\r
+          <button class="sample-chip" data-sample="article">多段文章</button>\r
+        </div>\r
+\r
+        <textarea\r
+          id="tts-text-input"\r
+          class="slot-textarea"\r
+          rows="5"\r
+          placeholder="输入或粘贴要朗读的文字……"\r
+        ></textarea>\r
+\r
+        <div class="tts-actions">\r
+          <button\r
+            id="tts-stream-btn"\r
+            class="action-button"\r
+            title="边合成边播放：首个片段生成后立即播放，其余文本继续在后台合成。"\r
+            disabled\r
+          >\r
+            <span class="material-icons">graphic_eq</span> 流式播放\r
+          </button>\r
+          <button\r
+            id="tts-speak-btn"\r
+            class="action-button secondary"\r
+            title="先把整段文字合成为一个音频再播放。想更快听到声音请用「流式播放」。"\r
+            disabled\r
+          >\r
+            <span class="material-icons">record_voice_over</span> 合成全部\r
+          </button>\r
+          <button id="tts-stop-btn" class="action-button secondary" disabled>\r
+            <span class="material-icons">stop</span> 停止\r
+          </button>\r
+          <button id="tts-download-btn" class="action-button secondary" disabled>\r
+            <span class="material-icons">download</span> 导出 WAV\r
+          </button>\r
+        </div>\r
+      </div>\r
+\r
+      <div id="tts-output" class="tts-output">\r
+        <div class="audio-visualizer-container">\r
+          <canvas id="tts-waveform"></canvas>\r
+        </div>\r
+\r
+        <div class="tts-metrics">\r
+          <div class="tts-metric">\r
+            <span class="tts-metric-label">首字延迟</span>\r
+            <span id="tts-metric-first" class="tts-metric-value">-</span>\r
+          </div>\r
+          <div class="tts-metric">\r
+            <span class="tts-metric-label">合成耗时</span>\r
+            <span id="tts-metric-total" class="tts-metric-value">-</span>\r
+          </div>\r
+          <div class="tts-metric">\r
+            <span class="tts-metric-label">音频时长</span>\r
+            <span id="tts-metric-audio" class="tts-metric-value">-</span>\r
+          </div>\r
+          <div class="tts-metric">\r
+            <span class="tts-metric-label">实时率</span>\r
+            <span id="tts-metric-rtf" class="tts-metric-value">-</span>\r
+          </div>\r
+        </div>\r
+\r
+        <div class="tts-reader-bar">\r
+          <div class="tts-reader-hint" title="点击任意句子即可从该句开始朗读">\r
+            <span class="material-icons" style="font-size: 16px; flex-shrink: 0">touch_app</span>\r
+            <span class="tts-reader-hint-text">点击任意句子即可从该句开始朗读</span>\r
+          </div>\r
+          <div class="tts-reader-controls">\r
+            <span id="tts-sentence-badge" class="tts-sentence-badge"></span>\r
+            <button id="tts-prev-sent-btn" type="button" class="tts-nav-btn" title="上一句" disabled>\r
+              <span class="material-icons" style="font-size: 16px">skip_previous</span>\r
+              <span>上一句</span>\r
+            </button>\r
+            <button id="tts-next-sent-btn" type="button" class="tts-nav-btn" title="下一句" disabled>\r
+              <span>下一句</span>\r
+              <span class="material-icons" style="font-size: 16px">skip_next</span>\r
+            </button>\r
+          </div>\r
+        </div>\r
+\r
+        <div id="tts-transcript" class="tts-transcript" aria-live="polite"></div>\r
+      </div>\r
+    </div>\r
+  </div>\r
+\r
+  <style>\r
+    .tts-viewport {\r
+      justify-content: flex-start !important;\r
+      padding: 20px;\r
+      gap: 16px;\r
+    }\r
+\r
+    .tts-card,\r
+    .tts-output {\r
+      width: 100%;\r
+      max-width: 720px;\r
+    }\r
+\r
+    .tts-actions {\r
+      display: flex;\r
+      flex-wrap: wrap;\r
+      gap: 10px;\r
+      margin-top: 12px;\r
+    }\r
+\r
+    .tts-actions .action-button {\r
+      margin-top: 0;\r
+    }\r
+\r
+    .tts-output .audio-visualizer-container {\r
+      margin-top: 0;\r
+    }\r
+\r
+    #tts-waveform {\r
+      width: 100%;\r
+      height: 100%;\r
+      display: block;\r
+    }\r
+\r
+    .tts-metrics {\r
+      display: grid;\r
+      grid-template-columns: repeat(4, minmax(0, 1fr));\r
+      gap: 8px;\r
+      margin-top: 12px;\r
+    }\r
+\r
+    .tts-metric {\r
+      display: flex;\r
+      flex-direction: column;\r
+      padding: 8px 12px;\r
+      background: #f8fafc;\r
+      border: 1px solid var(--border-color);\r
+      border-radius: var(--radius-sm);\r
+    }\r
+\r
+    .tts-metric-label {\r
+      font-size: 0.72rem;\r
+      font-weight: 600;\r
+      color: var(--text-secondary);\r
+    }\r
+\r
+    .tts-metric-value {\r
+      font-family: 'Roboto Mono', monospace;\r
+      font-size: 0.95rem;\r
+      color: var(--text-main);\r
+      margin-top: 2px;\r
+    }\r
+\r
+    .tts-reader-bar {\r
+      display: flex;\r
+      align-items: center;\r
+      justify-content: space-between;\r
+      flex-wrap: nowrap;\r
+      gap: 8px;\r
+      margin-top: 14px;\r
+      padding: 6px 10px;\r
+      background: #f8fafc;\r
+      border: 1px solid var(--border-color);\r
+      border-bottom: none;\r
+      border-radius: var(--radius-sm) var(--radius-sm) 0 0;\r
+    }\r
+\r
+    .tts-reader-hint {\r
+      display: inline-flex;\r
+      align-items: center;\r
+      gap: 6px;\r
+      min-width: 0;\r
+      flex: 1 1 auto;\r
+      font-size: 0.78rem;\r
+      color: var(--text-secondary);\r
+    }\r
+\r
+    .tts-reader-hint-text {\r
+      min-width: 0;\r
+      overflow: hidden;\r
+      text-overflow: ellipsis;\r
+      white-space: nowrap;\r
+    }\r
+\r
+    .tts-reader-controls {\r
+      display: inline-flex;\r
+      align-items: center;\r
+      flex-shrink: 0;\r
+      gap: 6px;\r
+    }\r
+\r
+    .tts-sentence-badge {\r
+      font-size: 0.75rem;\r
+      font-weight: 600;\r
+      color: var(--primary, #00796b);\r
+      padding: 2px 8px;\r
+      background: rgba(0, 151, 167, 0.1);\r
+      border-radius: 999px;\r
+      white-space: nowrap;\r
+    }\r
+\r
+    .tts-sentence-badge:empty {\r
+      display: none;\r
+    }\r
+\r
+    .tts-nav-btn {\r
+      display: inline-flex;\r
+      align-items: center;\r
+      gap: 2px;\r
+      padding: 3px 8px;\r
+      font-size: 0.76rem;\r
+      font-weight: 500;\r
+      color: var(--text-main);\r
+      background: #ffffff;\r
+      border: 1px solid var(--border-color);\r
+      border-radius: 4px;\r
+      cursor: pointer;\r
+      transition: background-color 0.12s ease, border-color 0.12s ease;\r
+    }\r
+\r
+    .tts-nav-btn:hover:not(:disabled) {\r
+      background: #f1f5f9;\r
+      border-color: var(--primary, #00796b);\r
+    }\r
+\r
+    .tts-nav-btn:disabled {\r
+      opacity: 0.45;\r
+      cursor: not-allowed;\r
+    }\r
+\r
+    .tts-transcript {\r
+      margin-top: 0;\r
+      padding: 14px 16px;\r
+      min-height: 64px;\r
+      border: 1px solid var(--border-color);\r
+      border-radius: 0 0 var(--radius-sm) var(--radius-sm);\r
+      background: #ffffff;\r
+      font-size: 1rem;\r
+      line-height: 1.75;\r
+      color: var(--text-secondary);\r
+    }\r
+\r
+    .tts-transcript:empty::before {\r
+      content: '朗读时，每个字词会在此处高亮显示。';\r
+      color: #9aa0a6;\r
+      font-style: italic;\r
+    }\r
+\r
+    .tts-paragraph {\r
+      margin: 0 0 10px 0;\r
+    }\r
+\r
+    .tts-paragraph:last-child {\r
+      margin-bottom: 0;\r
+    }\r
+\r
+    .tts-sentence {\r
+      border-radius: 3px;\r
+      padding: 1px 0;\r
+      cursor: pointer;\r
+      transition: background-color 0.12s ease, color 0.12s ease;\r
+    }\r
+\r
+    .tts-sentence:hover {\r
+      background: rgba(0, 151, 167, 0.08);\r
+      color: var(--text-main);\r
+    }\r
+\r
+    .tts-sentence.active {\r
+      background: rgba(0, 151, 167, 0.11);\r
+      color: var(--text-main);\r
+    }\r
+\r
+    .tts-sentence.synthesizing {\r
+      background: rgba(245, 158, 11, 0.14);\r
+      color: var(--text-main);\r
+    }\r
+\r
+    .tts-sentence.spoken {\r
+      color: var(--text-main);\r
+    }\r
+\r
+    .tts-transcript .tts-word {\r
+      border-radius: 3px;\r
+      padding: 1px 0;\r
+      transition: background-color 0.08s ease, box-shadow 0.08s ease;\r
+    }\r
+\r
+    .tts-transcript .tts-word.spoken {\r
+      color: var(--text-main);\r
+    }\r
+\r
+    .tts-transcript .tts-word.active {\r
+      background: var(--primary-soft, #b2dfdb);\r
+      box-shadow: 0 0 0 2px var(--primary-soft, #b2dfdb);\r
+      color: #004d40;\r
+    }\r
+\r
+    .control-hint {\r
+      font-size: 0.75rem;\r
+      color: var(--text-secondary);\r
+      margin-top: 4px;\r
+    }\r
+\r
+    @media (max-width: 600px) {\r
+      .tts-metrics {\r
+        grid-template-columns: repeat(2, minmax(0, 1fr));\r
+      }\r
+    }\r
+  </style>\r
+</div>\r
 `,j=O[0],M=[`zf_xiaoxiao`,`zf_xiaobei`,`zf_xiaoni`,`zf_xiaoyi`],N={welcome:`欢迎使用中文语音合成。您听到的每个字，都是直接在浏览器里生成的，文字不会被发送到任何服务器。
 
 声音会在合成的过程中边生成边播放，首个字几乎没有延迟，剩下的内容在后台继续生成。

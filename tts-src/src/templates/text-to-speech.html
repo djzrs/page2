@@ -1,0 +1,367 @@
+<div class="task-container">
+  <!-- 左侧控制区 -->
+  <div class="controls-panel">
+    <div class="section-title">模型选择</div>
+    <div id="model-selector-container"></div>
+
+    <div class="divider"></div>
+
+    <div class="section-title">设置</div>
+
+    <div class="control-group">
+      <div class="control-label">
+        <span>发音人</span>
+      </div>
+      <div class="select-wrapper">
+        <select id="voice-select" disabled>
+          <option value="">请先加载模型</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <div class="control-label">
+        <span>语速</span>
+        <span id="speaking-rate-value" class="value-badge">1.0</span>
+      </div>
+      <input type="range" id="speaking-rate" min="0.5" max="2" step="0.1" value="1" class="range-slider" />
+      <div class="control-hint">重新加载模型后生效。</div>
+    </div>
+
+    <div class="control-group">
+      <div class="control-label">
+        <span>运行设备</span>
+      </div>
+      <div class="select-wrapper">
+        <select id="delegate-select">
+          <option value="GPU" selected>GPU</option>
+          <option value="CPU">CPU</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="status-group">
+      <div id="status-message" class="status-message">就绪</div>
+      <div id="inference-time" class="inference-time">推理耗时：- 毫秒</div>
+    </div>
+  </div>
+
+  <!-- 右侧输出区 -->
+  <div class="output-panel">
+    <div class="output-header">
+      <h2>中文语音合成</h2>
+    </div>
+
+    <div class="viewport tts-viewport">
+      <div class="tts-card">
+        <div class="preset-bar" id="tts-samples">
+          <span class="preset-bar-label">示例</span>
+          <button class="sample-chip active" data-sample="welcome">欢迎语</button>
+          <button class="sample-chip" data-sample="story">小故事</button>
+          <button class="sample-chip" data-sample="numbers">数字与日期</button>
+          <button class="sample-chip" data-sample="article">多段文章</button>
+        </div>
+
+        <textarea
+          id="tts-text-input"
+          class="slot-textarea"
+          rows="5"
+          placeholder="输入或粘贴要朗读的文字……"
+        ></textarea>
+
+        <div class="tts-actions">
+          <button
+            id="tts-stream-btn"
+            class="action-button"
+            title="边合成边播放：首个片段生成后立即播放，其余文本继续在后台合成。"
+            disabled
+          >
+            <span class="material-icons">graphic_eq</span> 流式播放
+          </button>
+          <button
+            id="tts-speak-btn"
+            class="action-button secondary"
+            title="先把整段文字合成为一个音频再播放。想更快听到声音请用「流式播放」。"
+            disabled
+          >
+            <span class="material-icons">record_voice_over</span> 合成全部
+          </button>
+          <button id="tts-stop-btn" class="action-button secondary" disabled>
+            <span class="material-icons">stop</span> 停止
+          </button>
+          <button id="tts-download-btn" class="action-button secondary" disabled>
+            <span class="material-icons">download</span> 导出 WAV
+          </button>
+        </div>
+      </div>
+
+      <div id="tts-output" class="tts-output">
+        <div class="audio-visualizer-container">
+          <canvas id="tts-waveform"></canvas>
+        </div>
+
+        <div class="tts-metrics">
+          <div class="tts-metric">
+            <span class="tts-metric-label">首字延迟</span>
+            <span id="tts-metric-first" class="tts-metric-value">-</span>
+          </div>
+          <div class="tts-metric">
+            <span class="tts-metric-label">合成耗时</span>
+            <span id="tts-metric-total" class="tts-metric-value">-</span>
+          </div>
+          <div class="tts-metric">
+            <span class="tts-metric-label">音频时长</span>
+            <span id="tts-metric-audio" class="tts-metric-value">-</span>
+          </div>
+          <div class="tts-metric">
+            <span class="tts-metric-label">实时率</span>
+            <span id="tts-metric-rtf" class="tts-metric-value">-</span>
+          </div>
+        </div>
+
+        <div class="tts-reader-bar">
+          <div class="tts-reader-hint" title="点击任意句子即可从该句开始朗读">
+            <span class="material-icons" style="font-size: 16px; flex-shrink: 0">touch_app</span>
+            <span class="tts-reader-hint-text">点击任意句子即可从该句开始朗读</span>
+          </div>
+          <div class="tts-reader-controls">
+            <span id="tts-sentence-badge" class="tts-sentence-badge"></span>
+            <button id="tts-prev-sent-btn" type="button" class="tts-nav-btn" title="上一句" disabled>
+              <span class="material-icons" style="font-size: 16px">skip_previous</span>
+              <span>上一句</span>
+            </button>
+            <button id="tts-next-sent-btn" type="button" class="tts-nav-btn" title="下一句" disabled>
+              <span>下一句</span>
+              <span class="material-icons" style="font-size: 16px">skip_next</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="tts-transcript" class="tts-transcript" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .tts-viewport {
+      justify-content: flex-start !important;
+      padding: 20px;
+      gap: 16px;
+    }
+
+    .tts-card,
+    .tts-output {
+      width: 100%;
+      max-width: 720px;
+    }
+
+    .tts-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .tts-actions .action-button {
+      margin-top: 0;
+    }
+
+    .tts-output .audio-visualizer-container {
+      margin-top: 0;
+    }
+
+    #tts-waveform {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .tts-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .tts-metric {
+      display: flex;
+      flex-direction: column;
+      padding: 8px 12px;
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+    }
+
+    .tts-metric-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .tts-metric-value {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.95rem;
+      color: var(--text-main);
+      margin-top: 2px;
+    }
+
+    .tts-reader-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: nowrap;
+      gap: 8px;
+      margin-top: 14px;
+      padding: 6px 10px;
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-bottom: none;
+      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    }
+
+    .tts-reader-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      flex: 1 1 auto;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+    }
+
+    .tts-reader-hint-text {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tts-reader-controls {
+      display: inline-flex;
+      align-items: center;
+      flex-shrink: 0;
+      gap: 6px;
+    }
+
+    .tts-sentence-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--primary, #00796b);
+      padding: 2px 8px;
+      background: rgba(0, 151, 167, 0.1);
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .tts-sentence-badge:empty {
+      display: none;
+    }
+
+    .tts-nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      padding: 3px 8px;
+      font-size: 0.76rem;
+      font-weight: 500;
+      color: var(--text-main);
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.12s ease, border-color 0.12s ease;
+    }
+
+    .tts-nav-btn:hover:not(:disabled) {
+      background: #f1f5f9;
+      border-color: var(--primary, #00796b);
+    }
+
+    .tts-nav-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .tts-transcript {
+      margin-top: 0;
+      padding: 14px 16px;
+      min-height: 64px;
+      border: 1px solid var(--border-color);
+      border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+      background: #ffffff;
+      font-size: 1rem;
+      line-height: 1.75;
+      color: var(--text-secondary);
+    }
+
+    .tts-transcript:empty::before {
+      content: '朗读时，每个字词会在此处高亮显示。';
+      color: #9aa0a6;
+      font-style: italic;
+    }
+
+    .tts-paragraph {
+      margin: 0 0 10px 0;
+    }
+
+    .tts-paragraph:last-child {
+      margin-bottom: 0;
+    }
+
+    .tts-sentence {
+      border-radius: 3px;
+      padding: 1px 0;
+      cursor: pointer;
+      transition: background-color 0.12s ease, color 0.12s ease;
+    }
+
+    .tts-sentence:hover {
+      background: rgba(0, 151, 167, 0.08);
+      color: var(--text-main);
+    }
+
+    .tts-sentence.active {
+      background: rgba(0, 151, 167, 0.11);
+      color: var(--text-main);
+    }
+
+    .tts-sentence.synthesizing {
+      background: rgba(245, 158, 11, 0.14);
+      color: var(--text-main);
+    }
+
+    .tts-sentence.spoken {
+      color: var(--text-main);
+    }
+
+    .tts-transcript .tts-word {
+      border-radius: 3px;
+      padding: 1px 0;
+      transition: background-color 0.08s ease, box-shadow 0.08s ease;
+    }
+
+    .tts-transcript .tts-word.spoken {
+      color: var(--text-main);
+    }
+
+    .tts-transcript .tts-word.active {
+      background: var(--primary-soft, #b2dfdb);
+      box-shadow: 0 0 0 2px var(--primary-soft, #b2dfdb);
+      color: #004d40;
+    }
+
+    .control-hint {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    @media (max-width: 600px) {
+      .tts-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</div>

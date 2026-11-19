@@ -1,0 +1,62 @@
+name: 构建 TTS 并部署 gh-pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出 main 分支
+        uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          package_json_file: tts-src/package.json
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: tts-src/pnpm-lock.yaml
+
+      - name: 安装 TTS 依赖
+        working-directory: tts-src
+        run: pnpm install --frozen-lockfile
+
+      - name: 构建 TTS（相对路径，输出到 tts/）
+        working-directory: tts-src
+        run: pnpm build
+        env:
+          OUT_DIR: ../tts
+
+      - name: 准备站点目录（汇总 mp / tts / webai）
+        run: |
+          rm -rf _site
+          mkdir -p _site
+          cp -r mp _site/
+          cp -r tts _site/
+          cp -r webai _site/
+
+      - name: 发布站点到 gh-pages 分支
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_site
+          publish_branch: gh-pages
+          force_orphan: true
+          user_name: github-actions[bot]
+          user_email: github-actions[bot]@users.noreply.github.com
+          commit_message: "自动构建 TTS 并发布站点"
