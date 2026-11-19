@@ -19,7 +19,7 @@
       "name": "Web AI 实验",
       "desc": "TensorFlow.js 目标检测等浏览器端机器学习小实验。",
       "icon": "smart_toy",
-      "entry": "coco-ssd.html"
+      "entry": "index.html"
     }
   },
   "exclude": ["tts-src", "_site", ".git", ".github", "node_modules"]

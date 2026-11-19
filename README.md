@@ -16,7 +16,7 @@ https://djzrs.github.io/page2/
 |------|------|------|
 | `tts/` | 中文语音合成（MediaPipe Kokoro，支持流式播放、逐词高亮、中文发音人置顶） | `index.html` |
 | `mp/` | Google 官方 MediaPipe Tasks 演示合集（视觉/音频/文本/决策等 21 个示例） | `index.html` |
-| `webai/` | TensorFlow.js 浏览器端实验（COCO-SSD 目标检测等） | `coco-ssd.html` |
+| `webai/` | TensorFlow.js 浏览器端实验（COCO-SSD 目标检测等） | `index.html` |
 | `tts-src/` | **TTS 的源码**（不发布，仅供 CI 构建） | — |
 
 ## 部署方式：方案 C（Actions 构建 + 推送 gh-pages）
@@ -89,7 +89,7 @@ push 后 Actions 自动构建并发布，约 2-4 分钟。在仓库 **Actions** 
 导航生成的规则（`gen-nav.mjs`）：
 - 扫描根目录下所有子目录，跳过 `nav.config.json` 里 `exclude` 列出的（默认 `tts-src`、`_site`、`.git`、`.github`、`node_modules`）。
 - 每个子项目的显示名优先取配置里的 `name`，否则取入口页的 `<title>`，再否则取目录名。
-- 入口页优先 `index.html`，可用配置 `entry` 指定（如 webai 用 `coco-ssd.html`）。
+- 入口页优先 `index.html`，可用配置 `entry` 指定其它文件名。
 
 ### 手动触发部署
 
