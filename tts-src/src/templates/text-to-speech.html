@@ -1,4 +1,4 @@
-<div class="task-container">
+<div class="task-container tts-app">
   <!-- 左侧控制区 -->
   <div class="controls-panel">
     <div class="section-title">模型选择</div>
@@ -37,6 +37,9 @@
           <option value="GPU" selected>GPU</option>
           <option value="CPU">CPU</option>
         </select>
+      </div>
+      <div id="gpu-status" class="gpu-status" aria-live="polite">
+        <span class="gpu-status-dot"></span><span id="gpu-status-text">正在检测 GPU…</span>
       </div>
     </div>
 
@@ -145,6 +148,17 @@
   </div>
 
   <style>
+    /* ================= 容器与分栏 ================= */
+    .tts-app {
+      display: flex;
+      height: 100%;
+      width: 100%;
+    }
+    .tts-app .controls-panel {
+      width: 340px;
+      max-width: 340px;
+    }
+
     .tts-viewport {
       justify-content: flex-start !important;
       padding: 20px;
@@ -178,6 +192,52 @@
       display: block;
     }
 
+    /* ================= GPU 状态徽标 ================= */
+    .gpu-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 500;
+      line-height: 1.4;
+      background: #f1f3f4;
+      color: var(--text-secondary);
+      width: fit-content;
+    }
+    .gpu-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: #9aa0a6;
+    }
+    .gpu-status.checking .gpu-status-dot {
+      background: #f9ab00;
+      animation: gpu-pulse 1s ease-in-out infinite;
+    }
+    .gpu-status.ok {
+      background: #e6f4ea;
+      color: #137333;
+    }
+    .gpu-status.ok .gpu-status-dot {
+      background: #34a853;
+    }
+    .gpu-status.warn {
+      background: #fef7e0;
+      color: #b06000;
+    }
+    .gpu-status.warn .gpu-status-dot {
+      background: #f9ab00;
+    }
+    @keyframes gpu-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.35; }
+    }
+
+    /* ================= 指标卡 ================= */
     .tts-metrics {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -207,6 +267,7 @@
       margin-top: 2px;
     }
 
+    /* ================= 逐句朗读栏 ================= */
     .tts-reader-bar {
       display: flex;
       align-items: center;
@@ -284,6 +345,7 @@
       cursor: not-allowed;
     }
 
+    /* ================= 转录文本与高亮 ================= */
     .tts-transcript {
       margin-top: 0;
       padding: 14px 16px;
@@ -305,7 +367,6 @@
     .tts-paragraph {
       margin: 0 0 10px 0;
     }
-
     .tts-paragraph:last-child {
       margin-bottom: 0;
     }
@@ -316,22 +377,18 @@
       cursor: pointer;
       transition: background-color 0.12s ease, color 0.12s ease;
     }
-
     .tts-sentence:hover {
       background: rgba(0, 151, 167, 0.08);
       color: var(--text-main);
     }
-
     .tts-sentence.active {
       background: rgba(0, 151, 167, 0.11);
       color: var(--text-main);
     }
-
     .tts-sentence.synthesizing {
       background: rgba(245, 158, 11, 0.14);
       color: var(--text-main);
     }
-
     .tts-sentence.spoken {
       color: var(--text-main);
     }
@@ -341,11 +398,9 @@
       padding: 1px 0;
       transition: background-color 0.08s ease, box-shadow 0.08s ease;
     }
-
     .tts-transcript .tts-word.spoken {
       color: var(--text-main);
     }
-
     .tts-transcript .tts-word.active {
       background: var(--primary-soft, #b2dfdb);
       box-shadow: 0 0 0 2px var(--primary-soft, #b2dfdb);
@@ -358,9 +413,119 @@
       margin-top: 4px;
     }
 
-    @media (max-width: 600px) {
+    /* ================= 响应式布局 ================= */
+    /* 平板：收窄控制栏 */
+    @media (max-width: 1000px) {
+      .tts-app .controls-panel {
+        width: 300px;
+        max-width: 300px;
+        padding: 18px;
+      }
+      .tts-viewport {
+        padding: 16px;
+      }
+    }
+
+    /* 手机：上下堆叠 + 单一文档流滚动，触控友好 */
+    @media (max-width: 768px) {
+      html, body {
+        height: auto !important;
+        min-height: 100%;
+        overflow: visible !important;
+      }
+      body {
+        overflow-x: hidden !important;
+        -webkit-text-size-adjust: 100%;
+      }
+      #app, .app-container, .main-content {
+        height: auto !important;
+        min-height: 100vh;
+        min-height: 100dvh;
+        overflow: visible !important;
+      }
+      .tts-app {
+        flex-direction: column !important;
+        height: auto !important;
+        overflow: visible !important;
+      }
+      .tts-app .controls-panel {
+        order: 0 !important; /* TTS 需先选模型/发音人，控件放前面 */
+        width: 100% !important;
+        max-width: 100% !important;
+        border-right: none !important;
+        border-top: none !important;
+        border-bottom: 1px solid var(--border-color) !important;
+        padding: 16px 16px calc(16px + env(safe-area-inset-bottom)) !important;
+        overflow: visible !important;
+        gap: 0;
+      }
+      .tts-app .output-panel {
+        order: 1 !important;
+        width: 100% !important;
+        overflow: visible !important;
+        padding: 12px !important;
+      }
+      .tts-viewport {
+        padding: 14px !important;
+        gap: 12px !important;
+      }
+      .tts-card, .tts-output {
+        max-width: 100% !important;
+      }
+      .output-header {
+        padding: 14px 16px !important;
+      }
+
+      /* 触控目标放大 */
+      .tts-actions .action-button,
+      .tts-nav-btn,
+      .sample-chip {
+        min-height: 42px;
+      }
+      .tts-actions .action-button {
+        flex: 1 1 calc(50% - 10px);
+        justify-content: center;
+        font-size: 0.92rem;
+      }
+      .range-slider {
+        height: 28px;
+      }
+      select, .select-wrapper select {
+        font-size: 16px !important; /* 防止 iOS 聚焦时自动缩放 */
+        min-height: 42px;
+      }
+      textarea#tts-text-input {
+        font-size: 16px !important;
+        min-height: 120px;
+      }
+      .preset-bar {
+        flex-wrap: wrap;
+        gap: 6px;
+      }
       .tts-metrics {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .tts-reader-bar {
+        flex-wrap: wrap;
+        row-gap: 8px;
+      }
+      .tts-reader-hint {
+        flex-basis: 100%;
+      }
+      .tts-reader-controls {
+        width: 100%;
+        justify-content: flex-end;
+      }
+    }
+
+    /* 超窄屏 */
+    @media (max-width: 380px) {
+      .tts-actions .action-button {
+        flex-basis: 100%;
+      }
+      .tts-metric-value {
+        font-size: 0.85rem;
       }
     }
   </style>

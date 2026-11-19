@@ -1095,7 +1095,64 @@ class TextToSpeechTask extends BaseTask {
 
 let activeTask: TextToSpeechTask | null = null;
 
+/** GPU 能力检测结果。MediaPipe 的 GPU delegate 依赖 WebGL 2.0。 */
+interface GpuCapability {
+  webgl2: boolean;
+  webgpu: boolean;
+  renderer: string;
+}
+
+function detectGpuCapability(): GpuCapability {
+  let webgl2 = false;
+  let renderer = '';
+  try {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl2') as WebGL2RenderingContext | null;
+    if (gl) {
+      webgl2 = true;
+      const info = gl.getExtension('WEBGL_debug_renderer_info');
+      renderer = info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL) || '') : '';
+    }
+  } catch (_) {
+    /* WebGL2 不可用 */
+  }
+  let webgpu = false;
+  try {
+    webgpu = typeof navigator !== 'undefined' && 'gpu' in navigator && !!(navigator as any).gpu;
+  } catch (_) {
+    /* WebGPU 不可用 */
+  }
+  return { webgl2, webgpu, renderer };
+}
+
+/** 判断检测到的 GPU 是否可作为 MediaPipe 的 GPU delegate。 */
+function isGpuUsable(cap: GpuCapability): boolean {
+  const softwareRenderer = /swiftshader|software|llvmpipe/i.test(cap.renderer);
+  return cap.webgl2 && !softwareRenderer;
+}
+
+/** 在模板渲染完成后，把 GPU 检测结果写入页面徽标。 */
+function applyGpuStatusUI(cap: GpuCapability) {
+  const wrap = document.getElementById('gpu-status');
+  const text = document.getElementById('gpu-status-text');
+  if (!wrap || !text) return;
+
+  const gpuOk = isGpuUsable(cap);
+  wrap.classList.remove('checking', 'ok', 'warn');
+  if (gpuOk) {
+    wrap.classList.add('ok');
+    text.textContent = cap.webgpu ? 'GPU 可用（WebGL2 · WebGPU）' : 'GPU 可用（WebGL2）';
+  } else {
+    wrap.classList.add('warn');
+    text.textContent = !cap.webgl2 ? '未检测到 WebGL2，已切到 CPU' : '仅软件渲染，已切到 CPU';
+  }
+}
+
 export async function setupTextToSpeech(container: HTMLElement) {
+  // 模板尚未注入 DOM，先用纯检测决定默认 delegate；UI 徽标在 initialize 后再填。
+  const cap = detectGpuCapability();
+  const gpuOk = isGpuUsable(cap);
+
   activeTask = new TextToSpeechTask({
     container,
     template,
@@ -1103,10 +1160,12 @@ export async function setupTextToSpeech(container: HTMLElement) {
     defaultModelUrl: hostedModelDownloadUrl(DEFAULT_MODEL),
     workerFactory: () =>
       new Worker(new URL('../workers/text-to-speech.worker.ts', import.meta.url), { type: 'module' }),
-    defaultDelegate: 'GPU',
+    defaultDelegate: gpuOk ? 'GPU' : 'CPU',
   });
 
   await activeTask.initialize();
+  // 此时模板已渲染，写入 GPU 状态徽标。
+  applyGpuStatusUI(cap);
 }
 
 export function cleanupTextToSpeech() {
