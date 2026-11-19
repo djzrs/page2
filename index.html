@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>我的演示站点</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <style>
+      :root {
+        --primary: #007f8b;
+        --bg: #f8f9fa;
+        --surface: #ffffff;
+        --text: #202124;
+        --muted: #5f6368;
+        --border: #e0e0e0;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: 'Roboto', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        color: var(--text);
+        background: var(--bg);
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap { max-width: 880px; margin: 0 auto; padding: 56px 20px 80px; }
+      header { text-align: center; margin-bottom: 40px; }
+      .logo {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 64px; height: 64px; border-radius: 18px;
+        background: var(--primary); color: #fff; font-size: 34px; margin-bottom: 18px;
+      }
+      h1 { font-size: 1.9rem; font-weight: 500; margin: 0 0 8px; }
+      .subtitle { color: var(--muted); margin: 0; font-size: 0.98rem; }
+      .grid { display: grid; gap: 14px; }
+      .card {
+        display: flex; align-items: center; gap: 18px;
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 14px; padding: 20px 22px;
+        text-decoration: none; color: inherit;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+      }
+      .card:hover {
+        transform: translateY(-2px);
+        border-color: var(--primary);
+        box-shadow: 0 6px 16px rgba(0,127,139,.14);
+      }
+      .card-icon {
+        flex-shrink: 0; width: 52px; height: 52px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 26px; color: var(--primary);
+        background: rgba(0,127,139,.09);
+      }
+      .card-body { flex: 1; min-width: 0; }
+      .card-body h2 { font-size: 1.12rem; font-weight: 500; margin: 0 0 5px; }
+      .card-body p { margin: 0 0 6px; color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
+      .path { font-size: 0.78rem; color: var(--primary); font-family: monospace; }
+      .badge {
+        font-size: 0.68rem; font-weight: 500; vertical-align: middle;
+        padding: 2px 8px; border-radius: 999px;
+        background: rgba(0,127,139,.12); color: var(--primary);
+      }
+      .arrow { color: #b0b6bd; flex-shrink: 0; }
+      footer { text-align: center; color: #9aa0a6; font-size: 0.8rem; margin-top: 48px; }
+      @media (max-width: 600px) {
+        .wrap { padding: 36px 14px 60px; }
+        .card { padding: 16px; gap: 12px; }
+        .card-icon { width: 44px; height: 44px; font-size: 22px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="logo material-icons">apps</div>
+        <h1>我的演示站点</h1>
+        <p class="subtitle">部署在 GitHub Pages 的浏览器端 AI 演示集合</p>
+      </header>
+      <main class="grid">
+      <a class="card" href="./tts/index.html">
+        <div class="card-icon material-icons">record_voice_over</div>
+        <div class="card-body">
+          <h2>中文语音合成</h2>
+          <p>基于 MediaPipe Kokoro 的纯浏览器中文 TTS，支持流式播放与逐词高亮。</p>
+          <span class="path">/tts/</span>
+        </div>
+        <span class="arrow material-icons">chevron_right</span>
+      </a>
+      <a class="card" href="./mp/index.html">
+        <div class="card-icon material-icons">visibility</div>
+        <div class="card-body">
+          <h2>MediaPipe 示例合集</h2>
+          <p>Google 官方 Tasks 演示：视觉、音频、文本、决策等 21 个示例。</p>
+          <span class="path">/mp/</span>
+        </div>
+        <span class="arrow material-icons">chevron_right</span>
+      </a>
+      <a class="card" href="./webai/index.html">
+        <div class="card-icon material-icons">smart_toy</div>
+        <div class="card-body">
+          <h2>Web AI 实验</h2>
+          <p>TensorFlow.js 目标检测等浏览器端机器学习小实验。</p>
+          <span class="path">/webai/</span>
+        </div>
+        <span class="arrow material-icons">chevron_right</span>
+      </a>
+      </main>
+      <footer>由 GitHub Actions 自动生成导航 · 3 个子项目</footer>
+    </div>
+  </body>
+</html>
